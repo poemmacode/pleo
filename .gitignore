@@ -1,2 +1,13 @@
-/tmp/
+/.bundle
+/log/*
+!/log/.keep
+/tmp/*
+!/tmp/.keep
+/storage/*
+!/storage/.keep
+/public/assets
+/config/master.key
+/config/credentials/*.key
+/.env*
+/coverage
 .DS_Store

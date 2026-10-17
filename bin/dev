@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Starts Postgres (project-local), the Rails API, Sidekiq and the Vite dev server. Ctrl-C stops all of them.
+# Starts Postgres (project-local), the Rails app and Sidekiq. Ctrl-C stops all of them.
 # Redis is expected on 127.0.0.1:6379 (brew services or docker compose up redis).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-export PATH="$HOME/.asdf/shims:$HOME/.asdf/installs/nodejs/22.19.0/bin:$PATH"
+export PATH="$HOME/.asdf/shims:$PATH"
 
 "$ROOT/bin/db" start
 
@@ -13,7 +13,7 @@ if ! (exec 3<>/dev/tcp/127.0.0.1/6379) 2>/dev/null; then
   exit 1
 fi
 
-(cd "$ROOT/api" && bin/rails db:prepare >/dev/null)
+(cd "$ROOT" && bin/rails db:prepare >/dev/null)
 
 pids=()
 cleanup() {
@@ -23,11 +23,10 @@ cleanup() {
 }
 trap cleanup INT TERM EXIT
 
-(cd "$ROOT/api" && exec bin/rails server -b 127.0.0.1 -p 3000) & pids+=($!)
-(cd "$ROOT/api" && exec bundle exec sidekiq -C config/sidekiq.yml) & pids+=($!)
-(cd "$ROOT/web" && exec npm run dev -- --host 127.0.0.1) & pids+=($!)
+(cd "$ROOT" && exec bin/rails server -b 127.0.0.1 -p 3000) & pids+=($!)
+(cd "$ROOT" && exec bundle exec sidekiq -C config/sidekiq.yml) & pids+=($!)
 
-echo "API http://127.0.0.1:3000 · Web http://127.0.0.1:5173"
+echo "http://127.0.0.1:3000"
 
 # macOS ships bash 3.2 (no `wait -n`): stop everything as soon as any process exits.
 while true; do

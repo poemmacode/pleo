@@ -1,0 +1,50 @@
+<%# Rendered in requests and in Turbo Stream broadcasts from jobs: depends only on the crawl. %>
+<div id="<%= dom_id(crawl, :audit) %>">
+  <% if crawl.completed? %>
+    <section class="card stack">
+      <div class="row">
+        <h2>Auditoría</h2>
+        <% if crawl.audit_status.in?(%w[done failed]) %>
+          <%= button_to "Repetir auditoría", audit_crawl_path(crawl), class: "secondary" %>
+        <% end %>
+        <% if crawl.audit_status == "done" %>
+          <%= link_to "Ver duplicados", crawl_duplicates_path(crawl) %>
+        <% end %>
+      </div>
+      <% case crawl.audit_status %>
+      <% when "failed" %>
+        <p role="alert" class="error">La auditoría falló: <%= crawl.audit_error %></p>
+      <% when "done" %>
+        <% summary = Audit::Summary.new(crawl) %>
+        <dl class="stats">
+          <% summary.by_severity.each do |severity, count| %>
+            <div><dt><%= AuditHelper::SEVERITY_LABELS[severity] %></dt><dd class="sev-<%= severity %>"><%= count %></dd></div>
+          <% end %>
+        </dl>
+        <% if summary.entries.empty? %><p>No se encontraron problemas.</p><% end %>
+        <ul class="plain issues">
+          <% summary.entries.each do |entry| %>
+            <li>
+              <details>
+                <summary class="issue-toggle">
+                  <%= severity_badge(entry.severity) %>
+                  <span class="issue-title"><%= entry.title %></span>
+                  <span class="muted"><%= entry.count %></span>
+                </summary>
+                <div class="issue-body stack">
+                  <p><%= entry.description %></p>
+                  <p><strong>Cómo arreglarlo:</strong> <%= entry.how_to_fix %></p>
+                  <%= turbo_frame_tag "issue_#{entry.check_key.parameterize}", src: crawl_issue_path(crawl, entry.check_key), loading: :lazy do %>
+                    <p class="muted">Cargando…</p>
+                  <% end %>
+                </div>
+              </details>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="muted">Analizando las páginas…</p>
+      <% end %>
+    </section>
+  <% end %>
+</div>

@@ -1,0 +1,6 @@
+<%= turbo_stream.append "page_rows" do %>
+  <%= render partial: "crawls/pages/row", collection: @pages, as: :page, locals: { crawl: @crawl } %>
+<% end %>
+<%= turbo_stream.replace "pages_more" do %>
+  <%= render "crawls/pages/more", crawl: @crawl, next_cursor: @next_cursor, status: @status %>
+<% end %>

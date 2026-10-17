@@ -1,0 +1,6 @@
+<%= turbo_stream.append "findings_#{@definition.key.parameterize}" do %>
+  <%= render partial: "crawls/issues/finding", collection: @findings, locals: { crawl: @crawl } %>
+<% end %>
+<%= turbo_stream.replace "more_#{@definition.key.parameterize}" do %>
+  <%= render "crawls/issues/more", crawl: @crawl, definition: @definition, next_cursor: @next_cursor %>
+<% end %>

@@ -1,0 +1,26 @@
+<% content_for :title, "Proyectos · SEO Platform" %>
+<main>
+  <h1>Proyectos</h1>
+  <%= form_with model: @project, class: "inline-form" do |f| %>
+    <%= f.label :name do %>
+      Nuevo proyecto
+      <%= f.text_field :name, placeholder: "Mi blog", "aria-invalid": @project.errors[:name].any? %>
+    <% end %>
+    <%= f.submit "Crear" %>
+  <% end %>
+  <%= field_error(@project, :name) %>
+
+  <% if @projects.empty? %>
+    <p class="muted">Aún no tienes proyectos.</p>
+  <% end %>
+  <ul class="list">
+    <% @projects.each do |project| %>
+      <li class="card">
+        <%= link_to project.name, project %>
+        <span class="muted">
+          <%= pluralize(project.domains.size, "dominio") %> · <%= project.domains.count(&:verified?) %> verificado(s)
+        </span>
+      </li>
+    <% end %>
+  </ul>
+</main>

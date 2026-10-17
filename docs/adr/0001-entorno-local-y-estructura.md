@@ -1,6 +1,6 @@
 # ADR 0001 — Entorno local y estructura del monorepo
 
-Fecha: 2026-10-16 · Estado: aceptada
+Fecha: 2026-10-16 · Estado: aceptada; la parte de `api/` + `web/` y React queda sustituida por [ADR 0006](0006-monolito-hotwire.md)
 
 ## Contexto
 

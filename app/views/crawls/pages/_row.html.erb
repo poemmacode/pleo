@@ -1,0 +1,11 @@
+<tr>
+  <td class="url">
+    <%= link_to page.url, crawl_page_path(crawl, page), data: { turbo_frame: "_top" } %>
+    <% if page.redirect_url %><div class="muted">→ <%= page.redirect_url %></div><% end %>
+    <% if page.fetch_error %><div class="error"><%= page.fetch_error %></div><% end %>
+  </td>
+  <td><%= page.status_code || "—" %></td>
+  <td><%= page.depth || "—" %></td>
+  <td><%= "sí" if page.in_sitemap %></td>
+  <td><%= page.response_ms %></td>
+</tr>

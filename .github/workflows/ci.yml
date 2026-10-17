@@ -6,11 +6,8 @@ on:
   pull_request:
 
 jobs:
-  api:
+  test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: api
     services:
       postgres:
         image: postgres:16.4
@@ -27,6 +24,7 @@ jobs:
           --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       RAILS_ENV: test
+      CI: "true"
       DB_HOST: 127.0.0.1
       DB_PORT: 5432
       DB_USERNAME: ci
@@ -38,28 +36,14 @@ jobs:
         with:
           ruby-version: "3.3.0"
           bundler-cache: true
-          working-directory: api
+      # Chrome for the Cuprite system specs
+      - uses: browser-actions/setup-chrome@v1
+        id: chrome
+      - run: echo "CHROME_PATH=${{ steps.chrome.outputs.chrome-path }}" >> "$GITHUB_ENV"
       - run: bin/rails db:create db:schema:load
       - run: bundle exec rspec
       - run: bin/rubocop
       # EOLRails is tracked as a pending upgrade (Rails 8.1 needs Ruby >= 3.3.1); every other warning fails the build.
       - run: bin/brakeman --no-pager --except EOLRails
       - run: bundle exec bundle-audit check --update
-
-  web:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: web
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22.19.0"
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run build
-      - run: npm test
-      - run: npm audit --omit=dev
+      - run: bin/importmap audit

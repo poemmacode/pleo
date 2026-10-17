@@ -4,8 +4,8 @@
 
 | Capa | Elección | Notas / justificación de cambios |
 |---|---|---|
-| API | **Rails 8 API-only**, Ruby 3.3 | Instalados localmente: Ruby 3.3.0, Rails 8.0.5. Monolito modular (ver §3). |
-| Frontend | **React 18 + TypeScript + Vite** | TanStack Query para datos, TanStack Table para tablas grandes, Recharts para gráficos. |
+| Aplicación | **Rails 8 monolito** (HTML + jobs), Ruby 3.3 | *Cambio 2026-10-17 (ADR 0006)*: antes Rails API + SPA. Monolito modular (ver §3). |
+| Frontend | **Hotwire (Turbo + Stimulus) con importmap y Propshaft** | Sin Node ni paso de build. Progreso en vivo con Turbo Streams sobre Action Cable (Redis). Sustituye a React + Vite (ADR 0006). |
 | BD | **PostgreSQL 16** | Local hay 15.3 (sirve para desarrollo). Particionado por `crawl_id` en tablas de páginas/issues. `jsonb` para datos de proveedores. |
 | Jobs | **Sidekiq 7 + Redis 7** | Redis 7.0 instalado. Colas separadas por módulo (§4). `sidekiq-cron` para programación. |
 | Parsing HTML | **Nokogiri** | Rápido, maduro. |
@@ -15,7 +15,7 @@
 | Almacenamiento de blobs | **S3** (local: disco o MinIO) | HTML crudo comprimido (opcional, con retención), exportaciones PDF/CSV. |
 | Auth | Sesión por cookie (Rails 8 `authentication` generator) + OAuth Google para GSC/GA4 | Uso personal: un único usuario o pocos; sin multi-tenant complejo en el MVP. |
 | Secretos | Rails credentials (dev) / AWS Secrets Manager (prod) | Tokens OAuth cifrados con Active Record Encryption. |
-| Tests | RSpec, FactoryBot, WebMock/VCR, Vitest + Testing Library, Playwright Test (E2E) | |
+| Tests | RSpec, FactoryBot, WebMock/VCR; system specs con Capybara + Cuprite (Chrome sin cabeza vía CDP) | |
 | Despliegue | AWS: ECS Fargate (api, worker, renderer), RDS Postgres, ElastiCache Redis, S3, CloudFront | Alternativa de menor coste para uso personal: una sola EC2 con Kamal (incluido en Rails 8). Ver §8. |
 
 ## 2. Diagrama de arquitectura
@@ -23,12 +23,11 @@
 ```mermaid
 flowchart LR
   subgraph Cliente
-    UI[React + TS SPA]
+    UI[Navegador<br/>Turbo + Stimulus]
   end
 
   subgraph AWS["AWS (VPC)"]
-    CF[CloudFront + S3 estáticos]
-    API[Rails API<br/>/api/v1]
+    API[Rails monolito<br/>HTML + Action Cable]
     subgraph Workers["Sidekiq workers"]
       WC[crawl / audit]
       WK[keywords / serp]
@@ -55,8 +54,8 @@ flowchart LR
     LLM[APIs LLM oficiales]
   end
 
-  UI --> CF
-  UI -->|JSON| API
+  UI -->|HTML / Turbo Frames| API
+  API -.->|Turbo Streams por WebSocket| UI
   API --> PG
   API --> RD
   RD --> Workers
@@ -241,98 +240,29 @@ geo_runs(id, prompt_id, provider, model, params jsonb, response text, citations 
 geo_mentions(run_id, brand_id, position int, sentiment numeric, accuracy_flags jsonb)
 ```
 
-## 6. Contratos de API (REST JSON, `/api/v1`)
+## 6. Rutas de la aplicación (HTML)
 
-Convenciones: JSON:API-lite (`{data, meta, errors}`), paginación por cursor (`?cursor=&limit=`), filtros `filter[campo]=`, orden `sort=-campo`, errores `{errors:[{code, detail, field}]}`, IDs numéricos. Especificación formal en OpenAPI 3.1 generada con **rswag** desde los specs.
+*Desde el 2026-10-17 no hay API JSON (ADR 0006).* La interfaz es HTML con Turbo; si una integración la necesitara en el futuro, se añadiría un namespace `/api` sobre los mismos servicios (`Crawling::CreateCrawl`, `Crawling::Lifecycle`, `Audit::Summary`…).
 
-### 6.1 Proyectos y dominios
-
-| Método | Ruta | Cuerpo / query | Respuesta |
-|---|---|---|---|
-| POST | `/projects` | `{name}` | `201 {data: project}` |
-| GET | `/projects` | — | lista |
-| POST | `/projects/:id/domains` | `{host}` | `201 {data:{id, host, verification:{method_options, token}}}` |
-| POST | `/domains/:id/verify` | `{method: "dns_txt"\|"html_file"\|"meta"\|"gsc"}` | `200 {verified_at}` o `422 {code:"verification_failed"}` |
-
-### 6.2 Crawls (MVP)
-
-```http
-POST /api/v1/projects/:project_id/crawls
-{
-  "domain_id": 12,
-  "start_url": "https://example.com/",
-  "scope": "domain",              // domain | subdomain | subfolder
-  "max_pages": 5000,               // tope duro por plan: 50 000 (verificado), 200 (no verificado)
-  "max_depth": 10,
-  "requests_per_second": 2,        // 0.2–10 (verificado), máx 0.5 (no verificado)
-  "include_patterns": [], "exclude_patterns": ["^/wp-admin"],
-  "device": "desktop",            // desktop | mobile (cambia UA y viewport)
-  "render_js": false,
-  "use_sitemaps": true,
-  "run_pagespeed": {"enabled": true, "sample_size": 20, "strategy": "mobile"}
-}
-→ 202 {"data": {"id": 345, "status": "queued", "links": {"self": "/api/v1/crawls/345"}}}
-→ 422 {"errors":[{"code":"domain_not_verified"|"unsafe_target"|"invalid_scope", ...}]}
-```
-
-| Método | Ruta | Descripción |
-|---|---|---|
-| GET | `/crawls/:id` | estado, progreso (`pages_discovered/crawled/failed`), `health_score`, tiempos |
-| POST | `/crawls/:id/pause` · `/resume` · `/cancel` | control |
-| GET | `/crawls/:id/pages` | `filter[status_code]=404`, `filter[indexable]=false`, `filter[url_contains]=`, `sort=-inlinks_count` |
-| GET | `/crawls/:id/pages/:page_id` | detalle: metadatos, headings, enlaces in/out, schema, issues, rendimiento |
-| GET | `/crawls/:id/issues/summary` | `{health_score, by_severity:{error,warning,notice}, by_category:[{category, score, count}]}` |
-| GET | `/crawls/:id/issues` | agrupado por check: `[{check_key, severity, title, how_to_fix, pages_affected, priority_score}]` |
-| GET | `/crawls/:id/issues/:check_key/pages` | páginas afectadas con `details` |
-| GET | `/crawls/:id/links` | `filter[broken]=true`, `filter[internal]=true` |
-| GET | `/crawls/:id/duplicates` | `?type=title\|description\|content` → grupos `{hash, urls[]}` |
-| GET | `/crawls/:id/compare/:other_id` | `{new_issues, resolved_issues, score_delta}` |
-| POST | `/crawls/:id/reports` | `{format:"csv"\|"xlsx"\|"pdf", sections:[...]}` → `202 {report_id}` |
-| GET | `/reports/:id` | `{status, download_url}` (URL S3 prefirmada, 15 min) |
-| POST | `/projects/:id/crawl_schedules` | `{domain_id, cron:"weekly", config}` |
-
-Ejemplo de issue:
-
-```json
-{
-  "check_key": "links.internal_broken",
-  "category": "links",
-  "severity": "error",
-  "title": "Enlaces internos rotos",
-  "how_to_fix": "Actualiza o elimina los enlaces que apuntan a URLs con 4xx/5xx.",
-  "pages_affected": 37,
-  "priority_score": 82.4,
-  "sample": [{"page_url": "https://example.com/blog/a", "details": {"to_url": "https://example.com/old", "status": 404}}]
-}
-```
-
-### 6.3 Integraciones y módulos posteriores
-
-| Método | Ruta | Descripción |
-|---|---|---|
-| GET | `/oauth/google/start?scopes=gsc,ga4` · `/oauth/google/callback` | OAuth (scopes `webmasters.readonly`, `analytics.readonly`) |
-| GET | `/gsc/properties` · POST `/gsc/properties/:id/sync` | listar / sincronizar |
-| GET | `/gsc/properties/:id/performance` | `dimensions=query,page&start=&end=&filter[...]` |
-| GET | `/gsc/properties/:id/striking_distance` | pares query–page en posición 4–20 |
-| POST | `/keywords/research` | `{seed, country, language, limit}` → `202` job / `200` si cacheado |
-| GET | `/keywords/:id` | métricas + fuente + fecha |
-| POST | `/keyword_lists` · `/keyword_lists/:id/items` | listas |
-| POST | `/keyword_clusters` | `{keyword_ids, method:"serp_overlap"\|"embeddings"}` |
-| POST | `/competitors/discover` | `{project_id}` → candidatos con `overlap_score` |
-| POST | `/keyword_gap` | `{target, competitors[≤4], country, device}` → `{shared, missing, weak, strong, untapped, unique}` |
-| GET | `/backlinks/:domain` · `/referring_domains/:domain` | perfil (fuente indicada) |
-| POST | `/backlinks/import` | multipart CSV de GSC |
-| POST | `/backlink_gap` | `{target, competitors[]}` |
-| CRUD | `/rank_campaigns` · GET `/rank_campaigns/:id/positions` | seguimiento |
-| POST | `/onpage/recommendations` | `{url, keyword}` |
-| CRUD | `/geo/brands` · `/geo/prompts` · POST `/geo/runs` · GET `/geo/visibility` | GEO |
-| GET | `/usage` | gasto de API por proveedor y mes vs presupuesto |
+| Ruta | Qué hace |
+|---|---|
+| `GET/POST/DELETE /session` | login (formulario), logout |
+| `GET /` · `POST /projects` · `GET/DELETE /projects/:id` | proyectos |
+| `POST /projects/:id/domains` · `DELETE /domains/:id` · `POST /domains/:id/verify` | dominios y verificación (`method`: `dns_txt`, `html_file`, `meta`) |
+| `GET /projects/:id/crawls/new?domain_id=` · `POST /projects/:id/crawls` | formulario y creación de crawls (valores por defecto según el dominio) |
+| `GET /crawls/:id` | progreso en vivo (`turbo_stream_from crawl, :progress`), auditoría, páginas |
+| `POST /crawls/:id/pause` · `resume` · `cancel` · `audit` | control del crawl y re-auditoría |
+| `GET /crawls/:id/pages?status=4xx&after=` | tabla de páginas (Turbo Frame; "Cargar más" con Turbo Stream) |
+| `GET /crawls/:id/pages/:page_id` | detalle de página |
+| `GET /crawls/:id/issues/:check_key` | hallazgos de un check (frame diferido) |
+| `GET /crawls/:id/duplicates?type=title\|description\|content` | grupos de duplicados |
+| `/cable` | Action Cable; solo conexiones con sesión |
 
 ## 7. Roadmap de desarrollo
 
 | Fase | Semanas (1 dev, tiempo parcial ≈ ×2) | Entregable | Coste de datos |
 |---|---|---|---|
-| **0. Esqueleto** | 1 | Repo, Rails API + React + Postgres + Sidekiq, CI, auth, proyectos/dominios, verificación de dominio | 0 |
+| **0. Esqueleto** | 1 | Repo, Rails + Hotwire + Postgres + Sidekiq, CI, auth, proyectos/dominios, verificación de dominio | 0 |
 | **1. MVP crawler técnico** | 5–6 | Épicas A–F de [04-backlog.md](04-backlog.md): SafeHttp, crawling, checks, score, PSI, informes | 0 |
 | 2. Search Console + GA4 | 2 | OAuth, sync, rendimiento, striking distance, priorización de issues por impresiones | 0 |
 | 3. On-page + GEO técnico | 2 | Recomendaciones por URL, auditoría de bots IA, tráfico IA en GA4 | 0 |

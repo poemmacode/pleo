@@ -7,7 +7,7 @@ Estado: diseño aprobado el 2026-10-16. Épica 0 implementada (ver `../README.md
 | Documento | Contenido |
 |---|---|
 | [01-analisis-producto.md](01-analisis-producto.md) | Fase 1: método, evidencia, límites e inventario de los 8 módulos |
-| [02-arquitectura.md](02-arquitectura.md) | Fase 2: stack, diagrama, módulos, esquema de BD, contratos de API, roadmap |
+| [02-arquitectura.md](02-arquitectura.md) | Fase 2: stack, diagrama, módulos, esquema de BD, rutas, roadmap |
 | [03-mvp-crawler.md](03-mvp-crawler.md) | Fase 3: diseño del crawler técnico, seguridad (SSRF / DNS rebinding), catálogo de checks |
 | [04-backlog.md](04-backlog.md) | Backlog del MVP y siguientes fases con criterios de aceptación |
 | [05-fuentes-datos-costos.md](05-fuentes-datos-costos.md) | Fuentes de datos autorizadas, cuotas y costos estimados |

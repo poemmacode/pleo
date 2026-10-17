@@ -1,24 +1,34 @@
 # SEO Platform
 
-Plataforma SEO personal y no comercial. Diseño completo en [docs/](docs/README.md).
+Plataforma SEO personal y no comercial. El diseño completo está en [docs/](docs/README.md).
 
-Estado: **Épicas 0, A, B y C**: autenticación, proyectos y dominios con verificación (DNS TXT, archivo o meta tag); cliente HTTP seguro (SafeHttp), robots.txt y límite de velocidad por host; crawler con descubrimiento por sitemaps y enlaces, control de pausa/cancelación y explorador de páginas; auditoría con 54 checks (metadatos, canonical, hreflang, enlaces, duplicados, datos estructurados, HTTPS, móvil, GEO). La puntuación, PageSpeed e informes llegan con las épicas D–F.
+Estado: **Épicas 0, A, B y C**, más la interfaz en Hotwire. Incluye:
+- autenticación, proyectos y dominios con verificación (DNS TXT, archivo o meta tag);
+- cliente HTTP seguro (SafeHttp), robots.txt y límite de velocidad por host;
+- crawler con descubrimiento por sitemaps y enlaces, y progreso en vivo;
+- auditoría con 54 checks.
+
+La puntuación, PageSpeed y los informes llegan con las épicas D–F.
 
 ## Estructura
 
+Es un monolito Rails 8 con Hotwire (Turbo + Stimulus, importmap, sin Node). Ver [ADR 0006](docs/adr/0006-monolito-hotwire.md).
+
 ```
-api/      Rails 8 API (Ruby 3.3, PostgreSQL, Sidekiq)
-web/      React 19 + TypeScript + Vite
-bin/dev   arranca todo en local
-bin/db    clúster PostgreSQL propio del proyecto (puerto 5433, solo loopback)
-docs/     análisis, arquitectura, backlog y decisiones (docs/adr/)
+app/modules/   dominio: SafeHttp, Crawling, Audit
+app/jobs/      Sidekiq: crawling (lanes, sitemaps) y audit
+app/views/     HTML + Turbo Frames/Streams; app/javascript/controllers: Stimulus
+bin/dev        Postgres local + Rails + Sidekiq
+bin/db         clúster PostgreSQL propio del proyecto (puerto 5433, solo loopback)
+docs/          análisis, arquitectura, backlog y decisiones (docs/adr/)
 ```
 
 ## Requisitos
 
-- Ruby 3.3.0 y Node 22.19.0 (ver `.tool-versions`; con asdf: `asdf install`)
-- PostgreSQL ≥ 15: `bin/db` usa Postgres.app si existe, o el `pg_ctl` del PATH. Alternativa: `docker compose up -d`
-- Redis 7 en `127.0.0.1:6379` (`brew services start redis` o `docker compose up -d redis`)
+- Ruby 3.3.0 (`.tool-versions`).
+- PostgreSQL ≥ 15. `bin/db` usa Postgres.app si existe, o el `pg_ctl` del PATH. Alternativa: `docker compose up -d`.
+- Redis 7 en `127.0.0.1:6379`, para Sidekiq, Action Cable y el límite de velocidad.
+- Google Chrome, solo para los system specs.
 
 ## Puesta en marcha
 
@@ -27,97 +37,81 @@ bin/db start
 ```
 
 ```bash
-cd api && bundle install && bin/rails db:prepare
+bundle install && bin/rails db:prepare
 ```
+
+Crea tu usuario. El registro público está deshabilitado; la contraseña se pide sin mostrarla y debe tener al menos 12 caracteres:
 
 ```bash
-cd web && npm install
+bin/rails users:create EMAIL=tu@correo.com
 ```
 
-Crea tu usuario (el registro público está deshabilitado; pide la contraseña sin mostrarla, mínimo 12 caracteres):
-
-```bash
-cd api && bin/rails users:create EMAIL=tu@correo.com
-```
-
-Arranca API (3000), Sidekiq y web (5173):
+Arranca Rails (puerto 3000) y Sidekiq:
 
 ```bash
 bin/dev
 ```
 
-Abre http://127.0.0.1:5173. Vite hace de proxy de `/api` hacia Rails, así que la cookie de sesión es del mismo origen.
+Abre http://127.0.0.1:3000.
 
 ## Pruebas
 
 ```bash
-cd api && bundle exec rspec && bin/rubocop && bin/brakeman --no-pager --except EOLRails
+bundle exec rspec
 ```
 
 ```bash
-cd web && npm run lint && npm run build && npm test
+bin/rubocop && bin/brakeman --no-pager --except EOLRails && bin/importmap audit
 ```
 
-La CI (`.github/workflows/ci.yml`) ejecuta lo mismo más `bundle-audit` y `npm audit`.
+La CI (`.github/workflows/ci.yml`) ejecuta lo mismo, más `bundle-audit`, con Postgres, Redis y Chrome.
 
-## API (v1)
+## Rutas
 
-Todas las respuestas usan `{ data, meta }` o `{ errors: [{ code, detail, field }] }`. Las peticiones que modifican estado requieren la cabecera `X-CSRF-Token` (obtenida en `GET /api/v1/csrf_token` o en `meta.csrf_token` al iniciar sesión).
-
-| Método | Ruta | Descripción |
-|---|---|---|
-| GET | `/api/v1/csrf_token` | token CSRF |
-| POST / GET / DELETE | `/api/v1/session` | login (`email`, `password`) / usuario actual / logout |
-| GET / POST | `/api/v1/projects` | listar / crear (`project: { name }`) |
-| GET / PATCH / DELETE | `/api/v1/projects/:id` | detalle / renombrar / eliminar |
-| GET / POST | `/api/v1/projects/:id/domains` | listar / añadir (`domain: { host }`) |
-| GET / DELETE | `/api/v1/domains/:id` | detalle / quitar |
-| POST | `/api/v1/domains/:id/verify` | verificar (`method`: `dns_txt`, `html_file` o `meta`) |
-| GET / POST | `/api/v1/projects/:id/crawls` | listar / crear (`crawl: { domain_id, start_url, scope, max_pages, max_depth, requests_per_second, include_patterns, exclude_patterns, device, use_sitemaps, respect_nofollow, terms_accepted }`) → 202 |
-| GET | `/api/v1/crawls/:id` | estado, progreso, omitidas por motivo, códigos HTTP, robots.txt por host, informe de sitemaps |
-| POST | `/api/v1/crawls/:id/pause` · `resume` · `cancel` | control (409 si la transición no es válida) |
-| GET | `/api/v1/crawls/:id/pages` | páginas; `filter[status_code]=404\|4xx\|error`, `filter[url_contains]=`, `after=<id>&limit=` |
-| GET | `/api/v1/crawls/:id/urls` | frontera; `filter[state]=`, `filter[skip_reason]=` |
-| GET | `/api/v1/crawls/:id/pages/:page_id` | detalle: campos on-page, datos estructurados, issues, enlaces entrantes y salientes |
-| GET | `/api/v1/crawls/:id/issues` | resumen por check (severidad, título, descripción, cómo arreglarlo, nº de hallazgos) |
-| GET | `/api/v1/crawls/:id/issues/:check_key` | hallazgos de un check, paginados |
-| GET | `/api/v1/crawls/:id/duplicates?type=title\|description\|content` | grupos de duplicados |
-| POST | `/api/v1/crawls/:id/audit` | repetir la auditoría (202) |
+| Ruta | Qué hace |
+|---|---|
+| `/session` | login y logout (límite de 10 intentos cada 3 min) |
+| `/` y `/projects/:id` | proyectos, dominios (añadir, verificar, quitar) y crawls |
+| `/projects/:id/crawls/new?domain_id=` | nuevo crawl; valores por defecto y límites según si el dominio está verificado |
+| `/crawls/:id` | progreso en vivo, pausa, reanudación, cancelación, auditoría y tabla de páginas |
+| `/crawls/:id/pages/:page_id` | detalle: campos on-page, datos estructurados, problemas y enlaces |
+| `/crawls/:id/duplicates?type=title\|description\|content` | grupos de duplicados |
 
 ## Seguridad ya implementada
 
-- Sesiones en servidor (revocables) con cookie firmada `HttpOnly; SameSite=Lax` (`Secure` en producción); CSRF obligatorio.
-- Límite de 10 intentos de login cada 3 min y 10 verificaciones por minuto (memoria del proceso; pasar a Redis si hay varios procesos).
-- Cada usuario solo ve sus proyectos y dominios (404 en los ajenos).
-- Los dominios se normalizan (punycode, minúsculas) y se rechazan IPs en cualquier notación (decimal, octal, hex, IPv6), `localhost`, nombres internos (`.local`, `.internal`, metadatos de nube), puertos, credenciales en la URL y hosts sin dominio público registrable.
+- Sesiones en servidor (revocables) con cookie firmada `HttpOnly; SameSite=Lax` (`Secure` en producción) y CSRF estándar de Rails.
+- Action Cable solo acepta conexiones con sesión, y los streams de Turbo van firmados.
+- Cada usuario solo ve sus proyectos, dominios y crawls (404 en los ajenos).
+- Los dominios se normalizan (punycode, minúsculas). Se rechazan:
+  - IPs en cualquier notación;
+  - `localhost` y nombres internos;
+  - URLs con puerto o con credenciales;
+  - hosts sin dominio público registrable.
 
-## SafeHttp (`api/app/modules/safe_http/`)
+## SafeHttp (`app/modules/safe_http/`)
 
 Toda petición saliente hacia URLs de usuarios pasa por `SafeHttp::Client`:
 
-- Solo http/https, puertos 80/443 (`SAFE_HTTP_ALLOWED_PORTS`), sin credenciales en la URL ni caracteres de control.
-- DNS propio (A + AAAA, sin `/etc/hosts`); se rechaza si **cualquier** IP está en rangos privados, loopback, link-local/metadatos, CGNAT, reservados o en formas IPv6 que llevan una IPv4 bloqueada.
-- Conexión a la IP ya validada (anti DNS rebinding) con `Host`/SNI/certificado del hostname; ignora proxies de entorno.
-- Redirecciones manuales (máx. 10), cada salto revalidado; límites de tiempo de conexión, de lectura y total; cuerpo máx. 5 MB **descomprimido**.
-- `Robots::Fetcher`/`Parser`: RFC 9309 (grupos, longest-match, `*`, `$`, 4xx → todo permitido, 5xx/429/error → todo bloqueado).
-- `HostRateLimiter`: espaciado por host en Redis compartido por todos los workers; `RetryAfter`; `AdaptiveRate` (reduce a la mitad con >20 % de errores, pausa tras 3 reducciones).
+- Solo http/https y los puertos 80/443 (`SAFE_HTTP_ALLOWED_PORTS`); sin credenciales en la URL ni caracteres de control.
+- Resolución DNS propia (A + AAAA, sin `/etc/hosts`). Se rechaza la URL si **cualquier** IP resuelta está bloqueada: rangos privados, loopback, link-local/metadatos, CGNAT, reservados, o formas IPv6 que contienen una IPv4 bloqueada.
+- Conexión a la IP ya validada (anti DNS rebinding), con `Host`, SNI y certificado del hostname; se ignoran los proxies de entorno.
+- Redirecciones manuales (máximo 10), revalidando cada salto. Límites de tiempo y cuerpo de 5 MB como máximo, **una vez descomprimido**.
+- robots.txt según la RFC 9309, límite de velocidad por host en Redis y velocidad adaptativa.
 
-Las pruebas usan Redis db 15 (`TEST_REDIS_URL`) y un servidor HTTP local en 127.0.0.1, que solo se permite en el entorno `test`.
+## Crawler (`app/modules/crawling/`, `app/jobs/crawling/`)
 
-## Crawler (`api/app/modules/crawling/`, `api/app/jobs/crawling/`)
+- Dominio verificado: hasta 50 000 páginas y 10 req/s. Sin verificar: 200 páginas, 0,5 req/s y confirmación de los términos del sitio. Un crawl activo por host y dos por usuario.
+- `robots.txt` por host (no desactivable) y `Crawl-delay`. Si el servidor devuelve muchos 429/5xx, la velocidad se reduce y el crawl se pausa solo.
+- Detalles en [ADR 0004](docs/adr/0004-crawling.md).
 
-- Límites: dominio verificado hasta 50 000 páginas y 10 req/s; sin verificar, 200 páginas, 0,5 req/s y confirmación de términos. Un crawl activo por host y dos por usuario.
-- `robots.txt` por host (no desactivable), `Crawl-delay`, y reducción automática de la velocidad o pausa si el servidor devuelve muchos 429/5xx.
-- Detalles de diseño en [ADR 0004](docs/adr/0004-crawling.md).
+## Auditoría (`app/modules/audit/`)
 
-## Auditoría (`api/app/modules/audit/`)
-
-- Se ejecuta sola al completarse el crawl. El catálogo está en `Audit::Catalog`; cada check declara severidad, peso y textos en español.
-- Vocabulario de schema.org en `api/config/schema_org/` (CC BY-SA); se regenera con `bin/rails schema_org:refresh`.
-- Re-extraer un crawl con el extractor actual: `bin/rails audit:reextract CRAWL_ID=…`.
-- Diseño y limitaciones en [ADR 0005](docs/adr/0005-auditoria.md).
+- Se ejecuta sola al completarse el crawl. El catálogo de checks está en `Audit::Catalog`.
+- El vocabulario de schema.org está en `config/schema_org/` (CC BY-SA) y se regenera con `bin/rails schema_org:refresh`.
+- Para re-extraer un crawl con el extractor actual: `bin/rails audit:reextract CRAWL_ID=…`.
+- Detalles en [ADR 0005](docs/adr/0005-auditoria.md).
 
 ## Limitaciones actuales
 
 - La verificación vía Search Console llegará con esa integración.
-- Ruby 3.3.0 tiene un bug del parser que obliga a fijar `connection_pool` 2.x y bloquea Rails 8.1; `json` está fijado a 2.x por incompatibilidad con ActiveSupport 8.0.5. Ver [docs/adr/0002](docs/adr/0002-versiones-ruby-rails.md).
+- Ruby 3.3.0 tiene un bug del parser que obliga a fijar `connection_pool` 2.x e impide pasar a Rails 8.1. Además, `json` está fijado a 2.x por incompatibilidad con ActiveSupport 8.0.5. Ver [ADR 0002](docs/adr/0002-versiones-ruby-rails.md).

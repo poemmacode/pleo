@@ -1,0 +1,48 @@
+<li class="card stack" id="<%= dom_id(domain) %>">
+  <div class="row">
+    <strong><%= domain.host %></strong>
+    <span class="badge <%= "ok" if domain.verified? %>"><%= domain.verified? ? "Verificado" : "Sin verificar" %></span>
+    <%= link_to "Nuevo crawl", new_project_crawl_path(domain.project, domain_id: domain.id) %>
+  </div>
+
+  <% unless domain.verified? %>
+    <%= form_with url: verify_domain_path(domain), class: "stack", data: { controller: "verification-method" } do |f| %>
+      <fieldset class="row methods">
+        <legend>Método de verificación</legend>
+        <% { "dns_txt" => "Registro DNS TXT", "html_file" => "Archivo en el servidor", "meta" => "Etiqueta meta" }.each do |method, label| %>
+          <label class="radio">
+            <%= radio_button_tag :method, method, method == "dns_txt", id: "#{dom_id(domain)}_#{method}",
+                                 data: { action: "verification-method#show" } %>
+            <%= label %>
+          </label>
+        <% end %>
+      </fieldset>
+
+      <div data-verification-method-target="panel" data-method="dns_txt">
+        <p>Crea este registro DNS en tu proveedor (la propagación puede tardar unos minutos):</p>
+        <dl class="dns">
+          <dt>Tipo</dt><dd>TXT</dd>
+          <dt>Nombre</dt><dd><code><%= domain.host %></code></dd>
+          <dt>Valor</dt><dd><code><%= domain.txt_record_value %></code></dd>
+        </dl>
+      </div>
+      <div data-verification-method-target="panel" data-method="html_file" hidden>
+        <p>Publica un archivo de texto en esta URL exacta (sin redirigir a otro host):</p>
+        <dl class="dns">
+          <dt>URL</dt><dd><code>https://<%= domain.host %><%= Domain::Verifier.file_path(domain) %></code></dd>
+          <dt>Contenido</dt><dd><code><%= domain.txt_record_value %></code></dd>
+        </dl>
+      </div>
+      <div data-verification-method-target="panel" data-method="meta" hidden>
+        <p>Añade esta etiqueta dentro de <code>&lt;head&gt;</code> en la página de inicio de <%= domain.host %>:</p>
+        <p><code><%= Domain::Verifier.meta_tag(domain) %></code></p>
+      </div>
+
+      <div class="row">
+        <%= f.submit "Verificar", data: { turbo_submits_with: "Verificando…" } %>
+      </div>
+    <% end %>
+    <div><%= button_to "Quitar dominio", domain, method: :delete, class: "secondary",
+                       form: { data: { turbo_confirm: "¿Quitar #{domain.host}?" } } %></div>
+  <% end %>
+</li>

@@ -6,8 +6,8 @@ Formato: **ID · historia** — criterios de aceptación (CA). Estimación en d�
 
 ### Épica 0 — Esqueleto (≈5 d) — ✅ implementada
 
-- **0.1 · Monorepo inicial** — CA: `seo-platform/api` (Rails 8 API, Postgres, RSpec) y `seo-platform/web` (Vite React TS, Vitest) arrancan con un comando (`bin/dev`); `docker compose up` levanta Postgres y Redis; README con setup.
-- **0.2 · CI** — CA: GitHub Actions ejecuta RSpec, Vitest, rubocop, eslint, brakeman, bundler-audit; falla si alguno falla.
+- **0.1 · Repositorio inicial** — CA: aplicación Rails 8 (Postgres, RSpec; Hotwire desde ADR 0006) arranca con un comando (`bin/dev`); `docker compose up` levanta Postgres y Redis; README con setup.
+- **0.2 · CI** — CA: GitHub Actions ejecuta RSpec (incluidos system specs), rubocop, brakeman, bundler-audit e importmap audit; falla si alguno falla.
 - **0.3 · Autenticación** — CA: registro deshabilitado por defecto (usuario creado por `bin/rails users:create`); login/logout por cookie de sesión `HttpOnly; Secure; SameSite=Lax`; CSRF protegido; endpoints sin sesión → 401.
 - **0.4 · Proyectos y dominios** — CA: CRUD de proyectos; añadir dominio normaliza el host (punycode, minúsculas, sin `www.` opcional) y rechaza IPs y hosts bloqueados.
 - **0.5 · Verificación de dominio** — *DNS TXT en la Épica 0; archivo y meta añadidos en la Épica A (requieren SafeHttp).* CA: métodos DNS TXT (`seo-platform-verify=<token>`), archivo `/.well-known/seo-platform-<token>.txt` y meta tag; verificar consulta vía SafeHttp/DNS; token único por dominio; éxito fija `verified_at`; fallo devuelve 422 con motivo.
@@ -52,15 +52,15 @@ Formato: **ID · historia** — criterios de aceptación (CA). Estimación en d�
 - **F.2 · PDF** — CA: resumen ejecutivo con score, categorías, top-10 issues priorizados y recomendaciones; se genera sin dependencias de red externas.
 - **F.3 · Descarga segura** — CA: URL prefirmada de 15 min; solo el dueño del proyecto puede solicitarla.
 
-### Épica G — UI del MVP (≈8 d, en paralelo con B–F)
+### Épica G — UI del MVP (≈8 d, en paralelo con B–F) — Hotwire (ADR 0006); G.1, G.2, G.3 (sin score), G.5 implementadas
 
 - **G.1** Formulario de crawl con validaciones y explicación de límites. CA: no permite enviar valores fuera de rango; muestra el aviso de términos para dominios no verificados.
 - **G.2** Progreso en vivo. CA: barra de progreso y contadores se actualizan sin recargar.
 - **G.3** Resumen de auditoría. CA: score global, por categoría, top issues; navegación a páginas afectadas.
-- **G.4** Explorador de páginas. CA: tabla virtualizada (≥50k filas sin bloquear), filtros por status, indexabilidad, profundidad, texto en URL.
+- **G.4** Explorador de páginas. CA: tabla paginada por keyset ("Cargar más" con Turbo Stream, sin cargar 50k filas de golpe), filtros por status, indexabilidad, profundidad, texto en URL. *Hecho: filtro por estado.*
 - **G.5** Detalle de página. CA: metadatos, headings en árbol, enlaces in/out, schema, issues, rendimiento.
 - **G.6** Exportaciones. CA: lanzar y descargar informes.
-- **G.7** Accesibilidad básica. CA: navegación por teclado, contraste AA, `axe` sin violaciones serias en E2E.
+- **G.7** Accesibilidad básica. CA: navegación por teclado, contraste AA, sin violaciones serias de `axe` en los system specs.
 
 ### Definición de terminado (MVP)
 

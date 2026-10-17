@@ -21,8 +21,7 @@ No hay arquitectura previa que respetar: el diseño de [02-arquitectura.md](02-a
 /Users/joss/Documents/claude-apps/seo-platform/     ← repositorio git propio (git init aquí)
 ├── .tool-versions          ruby 3.3.x, nodejs 22.19.0
 ├── docker-compose.yml      postgres 16, redis 7 (y smokescreen en la iteración 1.1)
-├── api/                    Rails 8 API (app/modules/*, spec/)
-├── web/                    React + TS + Vite
+├── app/, config/, spec/    Rails 8 monolito con Hotwire (ADR 0006; antes api/ + web/)
 ├── renderer/               (iteración 1.1) Node + Playwright
 ├── deploy/                 Kamal config / IaC
 └── docs/                   esta documentación
@@ -38,7 +37,7 @@ Para cada historia del [backlog](04-backlog.md):
 2. Migración + modelo + spec de modelo.
 3. Servicio/job con specs unitarias (fixtures HTML o respuestas grabadas).
 4. Endpoint + request spec (rswag → OpenAPI).
-5. Pantalla React + test de componente (MSW).
+5. Vista Hotwire + request spec HTML (y system spec si hay interacción).
 6. Si toca el flujo principal, actualizar el E2E de Playwright.
 7. CI en verde → merge.
 

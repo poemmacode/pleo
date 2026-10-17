@@ -1,0 +1,11 @@
+<% content_for :title, "Crawl de #{@crawl.domain.host} · SEO Platform" %>
+<%= turbo_stream_from @crawl, :progress %>
+<main>
+  <p><%= link_to "← Proyecto", @crawl.project %></p>
+  <h1>Crawl de <%= @crawl.domain.host %></h1>
+  <%= render "crawls/progress", crawl: @crawl %>
+  <%= render "crawls/audit", crawl: @crawl %>
+  <%= turbo_frame_tag "pages", src: crawl_pages_path(@crawl), loading: :lazy do %>
+    <p class="muted">Cargando páginas…</p>
+  <% end %>
+</main>

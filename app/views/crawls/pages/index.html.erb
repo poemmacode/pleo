@@ -1,0 +1,24 @@
+<%= turbo_frame_tag "pages" do %>
+  <section class="card stack">
+    <div class="row">
+      <h2>Páginas</h2>
+      <%= form_with url: crawl_pages_path(@crawl), method: :get, class: "inline", data: { controller: "autosubmit" } do %>
+        <label class="inline">
+          Estado
+          <%= select_tag :status, options_for_select(CrawlsHelper::PAGE_STATUS_FILTERS.invert, @status), data: { action: "autosubmit#submit" } %>
+        </label>
+        <noscript><%= submit_tag "Filtrar" %></noscript>
+      <% end %>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>URL</th><th>Estado</th><th>Prof.</th><th>Sitemap</th><th>ms</th></tr></thead>
+        <tbody id="page_rows">
+          <%= render partial: "crawls/pages/row", collection: @pages, as: :page, locals: { crawl: @crawl } %>
+        </tbody>
+      </table>
+    </div>
+    <% if @pages.empty? %><p class="muted">Sin páginas para este filtro.</p><% end %>
+    <%= render "crawls/pages/more", crawl: @crawl, next_cursor: @next_cursor, status: @status %>
+  </section>
+<% end %>
