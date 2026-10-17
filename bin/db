@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Project-local PostgreSQL cluster for development (no Docker required).
+# Usage: bin/db start|stop|status
+# PG_BIN overrides the directory with postgres binaries; DB_PORT overrides the port (default 5433).
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+DATA="$ROOT/tmp/postgres"
+PORT="${DB_PORT:-5433}"
+
+if [[ -z "${PG_BIN:-}" ]]; then
+  if [[ -x /Applications/Postgres.app/Contents/Versions/latest/bin/postgres ]]; then
+    PG_BIN=/Applications/Postgres.app/Contents/Versions/latest/bin
+  else
+    PG_BIN="$(dirname "$(command -v pg_ctl)")"
+  fi
+fi
+
+case "${1:-status}" in
+  start)
+    if [[ ! -f "$DATA/PG_VERSION" ]]; then
+      mkdir -p "$DATA"
+      "$PG_BIN/initdb" -D "$DATA" -U "$USER" --auth=trust --encoding=UTF8 --locale=C >/dev/null
+    fi
+    if "$PG_BIN/pg_ctl" -D "$DATA" status >/dev/null 2>&1; then
+      echo "postgres already running on port $PORT"
+    else
+      # listen only on loopback; trust auth is acceptable only because of that
+      "$PG_BIN/pg_ctl" -D "$DATA" -l "$ROOT/tmp/postgres.log" -o "-p $PORT -k /tmp -c listen_addresses=127.0.0.1" -w start
+    fi
+    ;;
+  stop)
+    "$PG_BIN/pg_ctl" -D "$DATA" -m fast stop
+    ;;
+  status)
+    "$PG_BIN/pg_ctl" -D "$DATA" status
+    ;;
+  *)
+    echo "usage: bin/db start|stop|status" >&2
+    exit 1
+    ;;
+esac

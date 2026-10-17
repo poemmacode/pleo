@@ -1,0 +1,21 @@
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  # Development uses the project-local cluster started by ../bin/db (port 5433, loopback only).
+  host: <%= ENV.fetch("DB_HOST") { "127.0.0.1" } %>
+  port: <%= ENV.fetch("DB_PORT") { 5433 } %>
+  username: <%= ENV.fetch("DB_USERNAME") { ENV["USER"] } %>
+  password: <%= ENV["DB_PASSWORD"] %>
+
+development:
+  <<: *default
+  database: seo_platform_development
+
+test:
+  <<: *default
+  database: seo_platform_test
+
+production:
+  <<: *default
+  database: seo_platform_production
