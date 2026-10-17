@@ -63,6 +63,9 @@ code { font-size: 0.85rem; word-break: break-all; }
 .error { color: var(--danger); margin: 0; }
 .badge { font-size: 0.8rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
 .badge.ok { color: var(--ok); border-color: var(--ok); }
+.methods { border: 0; padding: 0; margin: 0; gap: 16px; }
+.methods legend { font-size: 0.9rem; color: var(--muted); margin-bottom: 6px; }
+label.radio { flex-direction: row; align-items: center; gap: 6px; }
 .dns { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; }
 .dns dt { color: var(--muted); }
 .dns dd { margin: 0; }

@@ -10,6 +10,8 @@ module DomainSerializer
       verification: {
         available_methods: Domain::Verifier::AVAILABLE_METHODS,
         dns_txt: { name: domain.host, type: "TXT", value: domain.txt_record_value },
+        html_file: { url: "https://#{domain.host}#{Domain::Verifier.file_path(domain)}", content: domain.txt_record_value },
+        meta: { tag: Domain::Verifier.meta_tag(domain) },
         last_attempt_at: domain.last_verification_attempt_at,
         last_error: domain.last_verification_error
       }

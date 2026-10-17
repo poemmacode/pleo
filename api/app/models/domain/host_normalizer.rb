@@ -59,7 +59,7 @@ class Domain::HostNormalizer
       return true if host.start_with?("[")
       return true if (IPAddr.new(host) rescue nil)
 
-      host.split(".").all? { |label| label.match?(/\A(0x[0-9a-f]*|\d+)\z/) }
+      SafeHttp::HostPolicy.numeric_host?(host)
     end
 
     def valid_labels?(host)

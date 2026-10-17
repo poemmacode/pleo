@@ -1,5 +1,5 @@
 # Hostnames the platform must never contact or accept as a project domain.
-# Épica A extends this module with the IP block list used at connection time.
+# Addresses are checked separately by SafeHttp::IpPolicy after resolution.
 module SafeHttp
   module HostPolicy
     BLOCKED_HOSTNAMES = %w[
@@ -25,6 +25,12 @@ module SafeHttp
     ].freeze
 
     module_function
+
+    # Hosts made only of numeric labels ("2130706433", "0x7f.1", "0177.0.0.1") are IPv4 shorthands
+    # that some resolvers and browsers accept; they are never legitimate site names.
+    def numeric_host?(host)
+      host.to_s.delete_suffix(".").split(".").all? { |label| label.match?(/\A(0x[0-9a-f]*|\d+)\z/i) }
+    end
 
     def blocked_hostname?(host)
       host = host.to_s.downcase.delete_suffix(".")

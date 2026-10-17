@@ -4,20 +4,20 @@ Formato: **ID · historia** — criterios de aceptación (CA). Estimación en d�
 
 ## MVP
 
-### Épica 0 — Esqueleto (≈5 d)
+### Épica 0 — Esqueleto (≈5 d) — ✅ implementada
 
 - **0.1 · Monorepo inicial** — CA: `seo-platform/api` (Rails 8 API, Postgres, RSpec) y `seo-platform/web` (Vite React TS, Vitest) arrancan con un comando (`bin/dev`); `docker compose up` levanta Postgres y Redis; README con setup.
 - **0.2 · CI** — CA: GitHub Actions ejecuta RSpec, Vitest, rubocop, eslint, brakeman, bundler-audit; falla si alguno falla.
 - **0.3 · Autenticación** — CA: registro deshabilitado por defecto (usuario creado por `bin/rails users:create`); login/logout por cookie de sesión `HttpOnly; Secure; SameSite=Lax`; CSRF protegido; endpoints sin sesión → 401.
 - **0.4 · Proyectos y dominios** — CA: CRUD de proyectos; añadir dominio normaliza el host (punycode, minúsculas, sin `www.` opcional) y rechaza IPs y hosts bloqueados.
-- **0.5 · Verificación de dominio** — *Implementado solo DNS TXT; archivo y meta se añaden en A.1 porque requieren SafeHttp.* CA: métodos DNS TXT (`seo-platform-verify=<token>`), archivo `/.well-known/seo-platform-<token>.txt` y meta tag; verificar consulta vía SafeHttp/DNS; token único por dominio; éxito fija `verified_at`; fallo devuelve 422 con motivo.
+- **0.5 · Verificación de dominio** — *DNS TXT en la Épica 0; archivo y meta añadidos en la Épica A (requieren SafeHttp).* CA: métodos DNS TXT (`seo-platform-verify=<token>`), archivo `/.well-known/seo-platform-<token>.txt` y meta tag; verificar consulta vía SafeHttp/DNS; token único por dominio; éxito fija `verified_at`; fallo devuelve 422 con motivo.
 
-### Épica A — SafeHttp y robots (≈6 d)
+### Épica A — SafeHttp y robots (≈6 d) — ✅ implementada (ver [ADR 0003](adr/0003-safehttp.md))
 
 - **A.1 · Cliente HTTP seguro** — CA: todos los casos de la tabla SSRF de [03 §3.3](03-mvp-crawler.md) se rechazan con `UnsafeTargetError`; la conexión usa la IP validada (spec con resolver stub de rebinding); TLS verifica hostname; límites de tamaño/tiempo/redirects aplicados; 100 % de cobertura de ramas en el módulo.
 - **A.2 · Parser robots.txt (RFC 9309)** — CA: pasa la batería de casos de la RFC (grupos por UA, longest-match, `*`, `$`, `Allow` vs `Disallow` empatados → allow); 5xx/timeout ⇒ disallow all; 4xx ⇒ allow all; extrae `Sitemap:` y `Crawl-delay`.
 - **A.3 · Rate limiting por host** — CA: token bucket en Redis; con `rps=2` y 10 workers, un test de integración mide ≤ 2 req/s ±10 % al host fixture; `Retry-After` respetado.
-- **A.4 · Autoprotección ante sobrecarga** — CA: si >20 % de respuestas en 60 s son 429/5xx, el rps se divide entre 2; tras 3 reducciones el crawl pasa a `paused` con motivo visible.
+- **A.4 · Autoprotección ante sobrecarga** — *Política implementada (`SafeHttp::AdaptiveRate`); la conexión con el estado del crawl llega en B.1.* CA: si >20 % de respuestas en 60 s son 429/5xx, el rps se divide entre 2; tras 3 reducciones el crawl pasa a `paused` con motivo visible.
 
 ### Épica B — Crawling (≈8 d)
 

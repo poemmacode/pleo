@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { screen } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { Route, Routes } from 'react-router-dom'
@@ -18,6 +18,8 @@ const domain: Domain = {
   verification: {
     available_methods: ['dns_txt'],
     dns_txt: { name: 'ejemplo.com', type: 'TXT', value: 'seo-platform-verify=abc' },
+    html_file: { url: 'https://ejemplo.com/.well-known/seo-platform-abc.txt', content: 'seo-platform-verify=abc' },
+    meta: { tag: '<meta name="seo-platform-verify" content="abc">' },
     last_attempt_at: null,
     last_error: null,
   },
@@ -52,6 +54,27 @@ describe('ProjectPage', () => {
     await user.click(screen.getByRole('button', { name: 'Verificar' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('No se encontró el registro TXT')
+  })
+
+  it('verifies with the method the user picks', async () => {
+    let sentMethod: string | undefined
+    server.use(
+      http.get(api('/projects/3'), () => HttpResponse.json({ data: project })),
+      http.post(api('/domains/7/verify'), async ({ request }) => {
+        sentMethod = ((await request.json()) as { method: string }).method
+        return HttpResponse.json({ data: { ...domain, verified: true } })
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByLabelText('Etiqueta meta'))
+    expect(screen.getByText('<meta name="seo-platform-verify" content="abc">')).toBeInTheDocument()
+    await user.click(screen.getByLabelText('Archivo en el servidor'))
+    expect(screen.getByText('https://ejemplo.com/.well-known/seo-platform-abc.txt')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Verificar' }))
+
+    await waitFor(() => expect(sentMethod).toBe('html_file'))
   })
 
   it('shows the server reason when a domain is rejected', async () => {

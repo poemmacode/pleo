@@ -27,6 +27,9 @@ gem "json", "~> 2.10"
 gem "public_suffix", "~> 6.0"
 gem "simpleidn", "~> 0.2"
 
+# HTML parsing (verification meta tag now, page extraction in the crawler)
+gem "nokogiri", "~> 1.18"
+
 # Use Rack CORS for handling Cross-Origin Resource Sharing (CORS), making cross-origin Ajax possible
 # gem "rack-cors"
 

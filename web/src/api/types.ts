@@ -10,10 +10,14 @@ export type Domain = {
   verification: {
     available_methods: string[]
     dns_txt: { name: string; type: 'TXT'; value: string }
+    html_file: { url: string; content: string }
+    meta: { tag: string }
     last_attempt_at: string | null
     last_error: string | null
   }
 }
+
+export type VerificationMethod = 'dns_txt' | 'html_file' | 'meta'
 
 export type Project = {
   id: number

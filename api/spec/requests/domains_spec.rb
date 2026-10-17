@@ -14,6 +14,8 @@ RSpec.describe "Domains API" do
     expect(data).to include("host" => "ejemplo.com", "verified" => false)
     expect(data.dig("verification", "dns_txt")).to include("name" => "ejemplo.com", "type" => "TXT")
     expect(data.dig("verification", "dns_txt", "value")).to start_with("seo-platform-verify=")
+    expect(data.dig("verification", "html_file", "url")).to match(%r{\Ahttps://ejemplo\.com/\.well-known/seo-platform-\w+\.txt\z})
+    expect(data.dig("verification", "meta", "tag")).to start_with('<meta name="seo-platform-verify"')
   end
 
   it "rejects IPs and internal hosts with the reason" do

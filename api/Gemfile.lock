@@ -320,6 +320,7 @@ DEPENDENCIES
   debug
   factory_bot_rails (~> 6.5)
   json (~> 2.10)
+  nokogiri (~> 1.18)
   pg (~> 1.1)
   public_suffix (~> 6.0)
   puma (>= 5.0)

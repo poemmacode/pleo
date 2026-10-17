@@ -2,7 +2,7 @@
 
 Plataforma SEO personal y no comercial. Diseño completo en [docs/](docs/README.md).
 
-Estado: **Épica 0 (esqueleto)**: autenticación, proyectos, dominios y verificación por DNS TXT. El crawler llega con las épicas A–F.
+Estado: **Épicas 0 y A**: autenticación, proyectos y dominios con verificación (DNS TXT, archivo o meta tag); cliente HTTP seguro (SafeHttp), robots.txt y límite de velocidad por host. El crawler llega con las épicas B–F.
 
 ## Estructura
 
@@ -72,7 +72,7 @@ Todas las respuestas usan `{ data, meta }` o `{ errors: [{ code, detail, field }
 | GET / PATCH / DELETE | `/api/v1/projects/:id` | detalle / renombrar / eliminar |
 | GET / POST | `/api/v1/projects/:id/domains` | listar / añadir (`domain: { host }`) |
 | GET / DELETE | `/api/v1/domains/:id` | detalle / quitar |
-| POST | `/api/v1/domains/:id/verify` | verificar (`method: "dns_txt"`) |
+| POST | `/api/v1/domains/:id/verify` | verificar (`method`: `dns_txt`, `html_file` o `meta`) |
 
 ## Seguridad ya implementada
 
@@ -81,7 +81,20 @@ Todas las respuestas usan `{ data, meta }` o `{ errors: [{ code, detail, field }
 - Cada usuario solo ve sus proyectos y dominios (404 en los ajenos).
 - Los dominios se normalizan (punycode, minúsculas) y se rechazan IPs en cualquier notación (decimal, octal, hex, IPv6), `localhost`, nombres internos (`.local`, `.internal`, metadatos de nube), puertos, credenciales en la URL y hosts sin dominio público registrable.
 
+## SafeHttp (`api/app/modules/safe_http/`)
+
+Toda petición saliente hacia URLs de usuarios pasa por `SafeHttp::Client`:
+
+- Solo http/https, puertos 80/443 (`SAFE_HTTP_ALLOWED_PORTS`), sin credenciales en la URL ni caracteres de control.
+- DNS propio (A + AAAA, sin `/etc/hosts`); se rechaza si **cualquier** IP está en rangos privados, loopback, link-local/metadatos, CGNAT, reservados o en formas IPv6 que llevan una IPv4 bloqueada.
+- Conexión a la IP ya validada (anti DNS rebinding) con `Host`/SNI/certificado del hostname; ignora proxies de entorno.
+- Redirecciones manuales (máx. 10), cada salto revalidado; límites de tiempo de conexión, de lectura y total; cuerpo máx. 5 MB **descomprimido**.
+- `Robots::Fetcher`/`Parser`: RFC 9309 (grupos, longest-match, `*`, `$`, 4xx → todo permitido, 5xx/429/error → todo bloqueado).
+- `HostRateLimiter`: espaciado por host en Redis compartido por todos los workers; `RetryAfter`; `AdaptiveRate` (reduce a la mitad con >20 % de errores, pausa tras 3 reducciones).
+
+Las pruebas usan Redis db 15 (`TEST_REDIS_URL`) y un servidor HTTP local en 127.0.0.1, que solo se permite en el entorno `test`.
+
 ## Limitaciones actuales
 
-- Solo la verificación por **DNS TXT**. Archivo HTML y meta tag llegarán con el cliente HTTP seguro (Épica A); GSC con la integración de Search Console.
+- La verificación vía Search Console llegará con esa integración.
 - Ruby 3.3.0 tiene un bug del parser que obliga a fijar `connection_pool` 2.x y bloquea Rails 8.1; `json` está fijado a 2.x por incompatibilidad con ActiveSupport 8.0.5. Ver [docs/adr/0002](docs/adr/0002-versiones-ruby-rails.md).

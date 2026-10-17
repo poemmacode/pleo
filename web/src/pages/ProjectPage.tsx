@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { useCreateDomain, useDeleteDomain, useDeleteProject, useProject, useVerifyDomain } from '../api/hooks'
-import type { Domain } from '../api/types'
+import type { Domain, VerificationMethod } from '../api/types'
 
 export function ProjectPage() {
   const projectId = Number(useParams().projectId)
@@ -53,10 +53,17 @@ export function ProjectPage() {
   )
 }
 
+const METHOD_LABELS: Record<VerificationMethod, string> = {
+  dns_txt: 'Registro DNS TXT',
+  html_file: 'Archivo en el servidor',
+  meta: 'Etiqueta meta',
+}
+
 function DomainCard({ domain, projectId }: { domain: Domain; projectId: number }) {
   const verify = useVerifyDomain(projectId)
   const deleteDomain = useDeleteDomain(projectId)
-  const txt = domain.verification.dns_txt
+  const [method, setMethod] = useState<VerificationMethod>('dns_txt')
+  const { dns_txt: txt, html_file: file, meta } = domain.verification
 
   return (
     <li className="card stack">
@@ -66,15 +73,45 @@ function DomainCard({ domain, projectId }: { domain: Domain; projectId: number }
       </div>
       {!domain.verified && (
         <>
-          <p>Crea este registro DNS en tu proveedor y pulsa «Verificar» (la propagación puede tardar unos minutos):</p>
-          <dl className="dns">
-            <dt>Tipo</dt><dd>{txt.type}</dd>
-            <dt>Nombre</dt><dd><code>{txt.name}</code></dd>
-            <dt>Valor</dt><dd><code>{txt.value}</code></dd>
-          </dl>
+          <fieldset className="row methods">
+            <legend>Método de verificación</legend>
+            {(Object.keys(METHOD_LABELS) as VerificationMethod[]).map((key) => (
+              <label key={key} className="radio">
+                <input type="radio" name={`method-${domain.id}`} checked={method === key} onChange={() => setMethod(key)} />
+                {METHOD_LABELS[key]}
+              </label>
+            ))}
+          </fieldset>
+
+          {method === 'dns_txt' && (
+            <>
+              <p>Crea este registro DNS en tu proveedor (la propagación puede tardar unos minutos):</p>
+              <dl className="dns">
+                <dt>Tipo</dt><dd>{txt.type}</dd>
+                <dt>Nombre</dt><dd><code>{txt.name}</code></dd>
+                <dt>Valor</dt><dd><code>{txt.value}</code></dd>
+              </dl>
+            </>
+          )}
+          {method === 'html_file' && (
+            <>
+              <p>Publica un archivo de texto en esta URL exacta (sin redirigir a otro host):</p>
+              <dl className="dns">
+                <dt>URL</dt><dd><code>{file.url}</code></dd>
+                <dt>Contenido</dt><dd><code>{file.content}</code></dd>
+              </dl>
+            </>
+          )}
+          {method === 'meta' && (
+            <>
+              <p>Añade esta etiqueta dentro de <code>&lt;head&gt;</code> en la página de inicio de {domain.host}:</p>
+              <p><code>{meta.tag}</code></p>
+            </>
+          )}
+
           {verify.error && <p role="alert" className="error">{verify.error.message}</p>}
           <div className="row">
-            <button onClick={() => verify.mutate(domain.id)} disabled={verify.isPending}>
+            <button onClick={() => verify.mutate({ domainId: domain.id, method })} disabled={verify.isPending}>
               {verify.isPending ? 'Verificando…' : 'Verificar'}
             </button>
             <button className="secondary" onClick={() => deleteDomain.mutate(domain.id)}>Quitar</button>

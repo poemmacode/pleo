@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, apiRequest, setCsrfToken } from './client'
-import type { Domain, Envelope, Project, User } from './types'
+import type { Domain, Envelope, Project, User, VerificationMethod } from './types'
 
 export function useSession() {
   return useQuery({
@@ -82,8 +82,8 @@ export function useCreateDomain(projectId: number) {
 export function useVerifyDomain(projectId: number) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (domainId: number) =>
-      apiRequest<Envelope<Domain>>('POST', `/domains/${domainId}/verify`, { method: 'dns_txt' }),
+    mutationFn: ({ domainId, method }: { domainId: number; method: VerificationMethod }) =>
+      apiRequest<Envelope<Domain>>('POST', `/domains/${domainId}/verify`, { method }),
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['projects', projectId] }),
   })
 }
