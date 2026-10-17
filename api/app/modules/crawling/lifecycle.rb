@@ -62,6 +62,7 @@ module Crawling
         sync_page_discovery_fields(crawl)
         crawl.update!(status: "completed", status_reason: completion_reason(crawl), finished_at: Time.current)
       end
+      Audit::RunAuditJob.perform_later(crawl.id) if crawl.completed?
     end
 
     # Sitemaps and later links can lower a URL's depth or mark it in_sitemap after its page was stored.

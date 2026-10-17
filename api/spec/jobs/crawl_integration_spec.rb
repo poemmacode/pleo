@@ -57,6 +57,36 @@ RSpec.describe "Crawling a site end to end", type: :job do
     expect(page.call("/").body).to include("Sobre nosotros")
   end
 
+  it "extracts on-page fields while crawling and marks non-HTML or failed pages as not indexable" do
+    crawl = run_crawl(use_sitemaps: false)
+    page = ->(path) { crawl.pages.find_by!(url: "#{origin}#{path}") }
+
+    expect(page.call("/")).to have_attributes(extracted: true, title: "t", indexable: true, links_count: 9)
+    expect(page.call("/old")).to have_attributes(extracted: false, indexable: false, indexability_reason: "status_301")
+    expect(page.call("/missing").indexability_reason).to eq("status_404")
+  end
+
+  it "audits the finished crawl and produces exactly the expected issues (golden)" do
+    crawl = run_crawl
+    html_pages = %w[/ /about /blog/ /blog/page /blog/post-1 /deep/1 /deep/2 /deep/3 /orphan]
+    on_every_html_page = %w[canonical.missing content.thin h1.missing https.not_used meta_description.missing
+                            mobile.viewport_missing schema.none title.duplicate title.too_short]
+    expected = on_every_html_page.index_with { html_pages }.merge(
+      "ai.llms_txt_missing" => %w[/llms.txt],
+      "http.4xx" => %w[/missing],
+      "links.internal_broken" => %w[/],
+      "links.internal_nofollow" => %w[/blog/],
+      "links.to_redirect" => %w[/],
+      "page.orphan" => %w[/orphan],
+      "robots.blocked_internal_linked" => %w[/private/secret]
+    )
+
+    actual = crawl.issues.group_by(&:check_key).transform_values { |issues| issues.map { _1.url.delete_prefix(origin) }.sort }
+    expect(crawl.audit_status).to eq("done")
+    expect(actual).to eq(expected.transform_values(&:sort))
+    expect(crawl.pages.find_by!(url: "#{origin}/about")).to have_attributes(inlinks_count: 1, internal_pagerank: a_value > 0)
+  end
+
   it "stores links with anchors, rel and internal flag, normalizing URLs" do
     crawl = run_crawl
     home = crawl.pages.find_by!(url: "#{origin}/")

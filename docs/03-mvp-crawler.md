@@ -175,7 +175,7 @@ Severidad: **E** error, **W** warning, **N** notice. Peso 1–10 (usado en score
 | | `perf.cls_poor` | W | 4 | CLS > 0,25 |
 | | `perf.inp_poor` | W | 4 | INP > 500 ms (CrUX, si existe) |
 | | `perf.score_low` | N | 2 | score Lighthouse < 50 |
-| | `perf.slow_ttfb` | N | 2 | TTFB del crawler > 1,5 s |
+| | `perf.slow_response` | N | 2 | descarga del HTML por el crawler > 1,5 s (antes `perf.slow_ttfb`; ver ADR 0005) |
 | | `page.too_large` | N | 2 | HTML > 2 MB |
 | GEO / AI search | `ai.bots_blocked` | W | 3 | robots.txt bloquea bots de IA relevantes (lista mantenida en config, informativo: puede ser intencional) |
 | | `ai.llms_txt_missing` | N | 1 | sin `/llms.txt` (estándar propuesto, impacto no garantizado) |

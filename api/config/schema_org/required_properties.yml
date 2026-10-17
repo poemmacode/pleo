@@ -1,0 +1,56 @@
+# Own rules for rich-result eligibility, written from Google Search Central's public documentation.
+# Rules apply to the type and its subtypes (e.g. Restaurant inherits LocalBusiness).
+#   required:    every property must be present
+#   one_of:      at least one property of each group must be present
+#   recommended: missing ones are reported as warnings
+Product:
+  required: [name]
+  one_of: [[offers, review, aggregateRating]]
+  recommended: [image, description, sku, brand]
+Offer:
+  one_of: [[price, priceSpecification]]
+  recommended: [priceCurrency, availability, url]
+AggregateRating:
+  required: [ratingValue]
+  one_of: [[ratingCount, reviewCount]]
+Review:
+  required: [author, reviewRating]
+Rating:
+  required: [ratingValue]
+BreadcrumbList:
+  required: [itemListElement]
+ListItem:
+  required: [position]
+  recommended: [name, item]
+FAQPage:
+  required: [mainEntity]
+Question:
+  required: [name, acceptedAnswer]
+Answer:
+  required: [text]
+Article:
+  recommended: [headline, image, datePublished, author]
+Recipe:
+  required: [name, image]
+  recommended: [author, datePublished, description, recipeIngredient, recipeInstructions]
+Event:
+  required: [name, startDate, location]
+  recommended: [endDate, description, image, offers, eventStatus]
+LocalBusiness:
+  required: [name, address]
+  recommended: [telephone, url, geo, openingHoursSpecification]
+Organization:
+  recommended: [name, url, logo]
+JobPosting:
+  required: [title, description, datePosted, hiringOrganization]
+  one_of: [[jobLocation, applicantLocationRequirements]]
+VideoObject:
+  required: [name, thumbnailUrl, uploadDate]
+  recommended: [description, contentUrl, duration]
+Course:
+  required: [name, description]
+SoftwareApplication:
+  required: [name]
+  recommended: [offers, aggregateRating, operatingSystem, applicationCategory]
+WebSite:
+  recommended: [name, url]

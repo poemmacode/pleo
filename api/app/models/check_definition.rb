@@ -1,0 +1,2 @@
+class CheckDefinition < ApplicationRecord
+end

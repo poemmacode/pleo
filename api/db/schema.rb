@@ -10,10 +10,23 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_17_021525) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_17_072055) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "check_definitions", force: :cascade do |t|
+    t.string "key", null: false
+    t.string "category", null: false
+    t.string "severity", null: false
+    t.integer "weight", null: false
+    t.string "title", null: false
+    t.text "description", null: false
+    t.text "how_to_fix", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_check_definitions_on_key", unique: true
+  end
 
   create_table "crawl_hosts", force: :cascade do |t|
     t.bigint "crawl_id", null: false
@@ -64,6 +77,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_17_021525) do
     t.datetime "finished_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "audit_status", default: "pending", null: false
+    t.string "audit_error"
+    t.datetime "audited_at"
+    t.jsonb "site_facts", default: {}, null: false
     t.index ["domain_id", "status"], name: "index_crawls_on_domain_id_and_status"
     t.index ["domain_id"], name: "index_crawls_on_domain_id"
     t.index ["project_id"], name: "index_crawls_on_project_id"
@@ -83,6 +100,27 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_17_021525) do
     t.index ["project_id"], name: "index_domains_on_project_id"
   end
 
+  create_table "external_link_checks", force: :cascade do |t|
+    t.bigint "crawl_id", null: false
+    t.text "url", null: false
+    t.binary "url_hash", null: false
+    t.integer "status_code"
+    t.string "error"
+    t.datetime "checked_at", null: false
+    t.index ["crawl_id", "url_hash"], name: "index_external_link_checks_on_crawl_id_and_url_hash", unique: true
+  end
+
+  create_table "issues", force: :cascade do |t|
+    t.bigint "crawl_id", null: false
+    t.string "check_key", null: false
+    t.bigint "page_id"
+    t.text "url"
+    t.jsonb "details", default: {}, null: false
+    t.float "priority_score"
+    t.index ["crawl_id", "check_key"], name: "index_issues_on_crawl_id_and_check_key"
+    t.index ["crawl_id", "page_id"], name: "index_issues_on_crawl_id_and_page_id"
+  end
+
   create_table "links", force: :cascade do |t|
     t.bigint "crawl_id", null: false
     t.bigint "from_page_id", null: false
@@ -91,12 +129,24 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_17_021525) do
     t.boolean "internal", null: false
     t.text "anchor"
     t.string "rel", default: [], null: false, array: true
+    t.bigint "to_page_id"
     t.index ["crawl_id", "to_url_hash"], name: "index_links_on_crawl_id_and_to_url_hash"
     t.index ["from_page_id"], name: "index_links_on_from_page_id"
   end
 
   create_table "page_bodies", primary_key: "page_id", force: :cascade do |t|
     t.binary "body_gzip", null: false
+  end
+
+  create_table "page_structured_data", force: :cascade do |t|
+    t.bigint "page_id", null: false
+    t.string "syntax", null: false
+    t.string "types", default: [], null: false, array: true
+    t.jsonb "data"
+    t.boolean "valid_syntax", default: true, null: false
+    t.jsonb "validation_errors", default: [], null: false
+    t.jsonb "validation_warnings", default: [], null: false
+    t.index ["page_id"], name: "index_page_structured_data_on_page_id"
   end
 
   create_table "pages", force: :cascade do |t|
@@ -115,8 +165,43 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_17_021525) do
     t.string "ip"
     t.jsonb "headers", default: {}, null: false
     t.datetime "fetched_at", null: false
+    t.boolean "extracted", default: false, null: false
+    t.text "title"
+    t.integer "title_count"
+    t.text "meta_description"
+    t.integer "meta_description_count"
+    t.string "meta_robots"
+    t.string "x_robots_tag"
+    t.boolean "noindex", default: false, null: false
+    t.boolean "nofollow", default: false, null: false
+    t.text "canonical_hrefs", default: [], null: false, array: true
+    t.text "canonical"
+    t.boolean "indexable", default: false, null: false
+    t.string "indexability_reason"
+    t.string "lang"
+    t.string "charset"
+    t.string "viewport"
+    t.jsonb "hreflang", default: [], null: false
+    t.text "h1", default: [], null: false, array: true
+    t.jsonb "headings", default: [], null: false
+    t.integer "word_count"
+    t.bigint "text_simhash"
+    t.binary "title_hash"
+    t.binary "description_hash"
+    t.integer "images_count"
+    t.integer "images_missing_alt"
+    t.integer "mixed_content_count"
+    t.text "mixed_content_samples", default: [], null: false, array: true
+    t.integer "links_count"
+    t.jsonb "open_graph", default: {}, null: false
+    t.integer "inlinks_count", default: 0, null: false
+    t.integer "outlinks_internal", default: 0, null: false
+    t.integer "outlinks_external", default: 0, null: false
+    t.float "internal_pagerank"
+    t.index ["crawl_id", "description_hash"], name: "index_pages_on_crawl_id_and_description_hash"
     t.index ["crawl_id", "id"], name: "index_pages_on_crawl_id_and_id"
     t.index ["crawl_id", "status_code"], name: "index_pages_on_crawl_id_and_status_code"
+    t.index ["crawl_id", "title_hash"], name: "index_pages_on_crawl_id_and_title_hash"
     t.index ["crawl_url_id"], name: "index_pages_on_crawl_url_id", unique: true
   end
 
@@ -151,9 +236,14 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_17_021525) do
   add_foreign_key "crawls", "domains", on_delete: :cascade
   add_foreign_key "crawls", "projects", on_delete: :cascade
   add_foreign_key "domains", "projects", on_delete: :cascade
+  add_foreign_key "external_link_checks", "crawls", on_delete: :cascade
+  add_foreign_key "issues", "crawls", on_delete: :cascade
+  add_foreign_key "issues", "pages", on_delete: :cascade
   add_foreign_key "links", "crawls", on_delete: :cascade
   add_foreign_key "links", "pages", column: "from_page_id", on_delete: :cascade
+  add_foreign_key "links", "pages", column: "to_page_id", on_delete: :nullify
   add_foreign_key "page_bodies", "pages", on_delete: :cascade
+  add_foreign_key "page_structured_data", "pages", on_delete: :cascade
   add_foreign_key "pages", "crawl_urls", on_delete: :cascade
   add_foreign_key "pages", "crawls", on_delete: :cascade
   add_foreign_key "projects", "users", on_delete: :cascade

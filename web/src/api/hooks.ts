@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, apiRequest, setCsrfToken } from './client'
-import type { Crawl, CrawlConfig, CrawlPage, Domain, Envelope, Project, User, VerificationMethod } from './types'
+import type { Crawl, CrawlConfig, CrawlPage, Domain, Envelope, Finding, IssueSummary, PageDetail, Project, User, VerificationMethod } from './types'
 
 export function useSession() {
   return useQuery({
@@ -115,12 +115,17 @@ export function useCreateCrawl(projectId: number) {
   })
 }
 
-// Polls every 3 s until the crawl finishes.
+// Polls every 3 s until the crawl and its audit finish.
 export function useCrawl(id: number) {
   return useQuery({
     queryKey: ['crawls', id],
     queryFn: async () => (await apiRequest<Envelope<Crawl>>('GET', `/crawls/${id}`)).data,
-    refetchInterval: (query) => (query.state.data && FINISHED_STATUSES.includes(query.state.data.status) ? false : 3000),
+    refetchInterval: (query) => {
+      const crawl = query.state.data
+      if (!crawl || !FINISHED_STATUSES.includes(crawl.status)) return 3000
+      // A completed crawl keeps polling until its audit has finished.
+      return crawl.status === 'completed' && ['pending', 'running'].includes(crawl.audit_status) ? 3000 : false
+    },
   })
 }
 
@@ -145,5 +150,34 @@ export function useCrawlPages(id: number, statusFilter: string, refreshKey: unkn
       return apiRequest<PagesResponse>('GET', `/crawls/${id}/pages?${params}`)
     },
     getNextPageParam: (last) => last.meta.next_cursor,
+  })
+}
+
+type IssuesResponse = Envelope<IssueSummary[]> & { meta: { by_severity: Record<string, number> } }
+
+export function useCrawlIssues(id: number, auditedAt: string | null) {
+  return useQuery({
+    queryKey: ['crawls', id, 'issues', auditedAt],
+    queryFn: () => apiRequest<IssuesResponse>('GET', `/crawls/${id}/issues`),
+    enabled: auditedAt !== null,
+  })
+}
+
+type FindingsResponse = Envelope<Finding[]> & { meta: { next_cursor: number | null } }
+
+export function useIssueFindings(id: number, checkKey: string) {
+  return useInfiniteQuery({
+    queryKey: ['crawls', id, 'issues', checkKey],
+    initialPageParam: null as number | null,
+    queryFn: ({ pageParam }) =>
+      apiRequest<FindingsResponse>('GET', `/crawls/${id}/issues/${checkKey}?limit=50${pageParam ? `&after=${pageParam}` : ''}`),
+    getNextPageParam: (last) => last.meta.next_cursor,
+  })
+}
+
+export function usePageDetail(crawlId: number, pageId: number) {
+  return useQuery({
+    queryKey: ['crawls', crawlId, 'pages', pageId],
+    queryFn: async () => (await apiRequest<Envelope<PageDetail>>('GET', `/crawls/${crawlId}/pages/${pageId}`)).data,
   })
 }

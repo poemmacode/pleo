@@ -54,6 +54,9 @@ export type Crawl = {
   current_rps: number
   progress: { discovered: number; crawled: number; failed: number; skipped: number; max_pages: number }
   sitemap_status: 'pending' | 'done' | 'skipped'
+  audit_status: 'pending' | 'running' | 'done' | 'failed'
+  audited_at: string | null
+  audit_error?: string | null
   created_at: string
   started_at: string | null
   finished_at: string | null
@@ -75,4 +78,44 @@ export type CrawlPage = {
   content_length: number | null
   truncated: boolean
   response_ms: number | null
+}
+
+export type Severity = 'error' | 'warning' | 'notice'
+
+export type IssueSummary = {
+  check_key: string
+  category: string
+  severity: Severity
+  weight: number
+  title: string
+  description: string
+  how_to_fix: string
+  count: number
+}
+
+export type Finding = { id: number; page_id: number | null; url: string | null; details: Record<string, unknown> }
+
+export type PageDetail = CrawlPage & {
+  title: string | null
+  indexable: boolean
+  indexability_reason: string | null
+  word_count: number | null
+  inlinks_count: number
+  internal_pagerank: number | null
+  meta_description: string | null
+  meta_robots: string | null
+  x_robots_tag: string | null
+  canonical: string | null
+  canonical_hrefs: string[]
+  lang: string | null
+  viewport: string | null
+  hreflang: { lang: string; href: string }[]
+  h1: string[]
+  headings: { level: number; text: string }[]
+  images_count: number | null
+  images_missing_alt: number | null
+  structured_data: { syntax: string; types: string[]; valid_syntax: boolean; validation_errors: Record<string, string>[]; validation_warnings: Record<string, string>[] }[]
+  issues: { check_key: string; severity: Severity; title: string; details: Record<string, unknown> }[]
+  outlinks: { url: string; anchor: string | null; internal: boolean; rel: string[] }[]
+  inlinks: { url: string; anchor: string | null }[]
 }

@@ -8,6 +8,7 @@
   --accent-text: #ffffff;
   --danger: #b42318;
   --ok: #157f3c;
+  --warn: #a15c07;
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   line-height: 1.5;
   color: var(--text);
@@ -25,6 +26,7 @@
     --accent-text: #0b1020;
     --danger: #ff7b6e;
     --ok: #4ccf7d;
+    --warn: #f0b354;
   }
 }
 
@@ -96,3 +98,15 @@ td.url { word-break: break-all; }
 .status-running, .status-queued { color: var(--accent); border-color: var(--accent); }
 .status-completed { color: var(--ok); border-color: var(--ok); }
 .status-failed, .status-cancelled { color: var(--danger); border-color: var(--danger); }
+
+.sev-error { color: var(--danger); border-color: var(--danger); }
+.sev-warning { color: var(--warn); border-color: var(--warn); }
+.sev-notice { color: var(--muted); }
+.issues > li { border-bottom: 1px solid var(--border); }
+.issue-toggle {
+  display: flex; width: 100%; gap: 10px; align-items: center; text-align: left;
+  background: transparent; color: var(--text); border: 0; padding: 8px 0;
+}
+.issue-title { flex: 1; }
+.issue-body { padding: 0 0 12px 8px; font-size: 0.9rem; }
+h1.url { font-size: 1.1rem; word-break: break-all; }

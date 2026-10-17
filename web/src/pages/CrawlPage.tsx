@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { FINISHED_STATUSES, useCrawl, useCrawlAction, useCrawlPages } from '../api/hooks'
 import type { Crawl } from '../api/types'
+import { IssuesSection } from './IssuesSection'
 
 const STATUS_LABELS: Record<Crawl['status'], string> = {
   queued: 'En cola',
@@ -76,6 +77,7 @@ export function CrawlPage() {
         </div>
       </section>
 
+      <IssuesSection crawl={c} />
       <CrawlDetails crawl={c} />
       <PagesTable crawlId={id} refreshKey={done} />
     </main>
@@ -148,7 +150,7 @@ function PagesTable({ crawlId, refreshKey }: { crawlId: number; refreshKey: numb
             {rows.map((page) => (
               <tr key={page.id}>
                 <td className="url">
-                  {page.url}
+                  <Link to={`/crawls/${crawlId}/pages/${page.id}`}>{page.url}</Link>
                   {page.redirect_url && <div className="muted">→ {page.redirect_url}</div>}
                   {page.fetch_error && <div className="error">{page.fetch_error}</div>}
                 </td>

@@ -2,7 +2,7 @@
 
 Plataforma SEO personal y no comercial. Diseño completo en [docs/](docs/README.md).
 
-Estado: **Épicas 0, A y B**: autenticación, proyectos y dominios con verificación (DNS TXT, archivo o meta tag); cliente HTTP seguro (SafeHttp), robots.txt y límite de velocidad por host; crawler con descubrimiento por sitemaps y enlaces, control de pausa/cancelación y explorador de páginas. Los checks de auditoría, la puntuación y los informes llegan con las épicas C–F.
+Estado: **Épicas 0, A, B y C**: autenticación, proyectos y dominios con verificación (DNS TXT, archivo o meta tag); cliente HTTP seguro (SafeHttp), robots.txt y límite de velocidad por host; crawler con descubrimiento por sitemaps y enlaces, control de pausa/cancelación y explorador de páginas; auditoría con 54 checks (metadatos, canonical, hreflang, enlaces, duplicados, datos estructurados, HTTPS, móvil, GEO). La puntuación, PageSpeed e informes llegan con las épicas D–F.
 
 ## Estructura
 
@@ -78,6 +78,11 @@ Todas las respuestas usan `{ data, meta }` o `{ errors: [{ code, detail, field }
 | POST | `/api/v1/crawls/:id/pause` · `resume` · `cancel` | control (409 si la transición no es válida) |
 | GET | `/api/v1/crawls/:id/pages` | páginas; `filter[status_code]=404\|4xx\|error`, `filter[url_contains]=`, `after=<id>&limit=` |
 | GET | `/api/v1/crawls/:id/urls` | frontera; `filter[state]=`, `filter[skip_reason]=` |
+| GET | `/api/v1/crawls/:id/pages/:page_id` | detalle: campos on-page, datos estructurados, issues, enlaces entrantes y salientes |
+| GET | `/api/v1/crawls/:id/issues` | resumen por check (severidad, título, descripción, cómo arreglarlo, nº de hallazgos) |
+| GET | `/api/v1/crawls/:id/issues/:check_key` | hallazgos de un check, paginados |
+| GET | `/api/v1/crawls/:id/duplicates?type=title\|description\|content` | grupos de duplicados |
+| POST | `/api/v1/crawls/:id/audit` | repetir la auditoría (202) |
 
 ## Seguridad ya implementada
 
@@ -104,6 +109,13 @@ Las pruebas usan Redis db 15 (`TEST_REDIS_URL`) y un servidor HTTP local en 127.
 - Límites: dominio verificado hasta 50 000 páginas y 10 req/s; sin verificar, 200 páginas, 0,5 req/s y confirmación de términos. Un crawl activo por host y dos por usuario.
 - `robots.txt` por host (no desactivable), `Crawl-delay`, y reducción automática de la velocidad o pausa si el servidor devuelve muchos 429/5xx.
 - Detalles de diseño en [ADR 0004](docs/adr/0004-crawling.md).
+
+## Auditoría (`api/app/modules/audit/`)
+
+- Se ejecuta sola al completarse el crawl. El catálogo está en `Audit::Catalog`; cada check declara severidad, peso y textos en español.
+- Vocabulario de schema.org en `api/config/schema_org/` (CC BY-SA); se regenera con `bin/rails schema_org:refresh`.
+- Re-extraer un crawl con el extractor actual: `bin/rails audit:reextract CRAWL_ID=…`.
+- Diseño y limitaciones en [ADR 0005](docs/adr/0005-auditoria.md).
 
 ## Limitaciones actuales
 

@@ -3,6 +3,7 @@ import { useLogout, useSession } from './api/hooks'
 import { CrawlPage } from './pages/CrawlPage'
 import { LoginPage } from './pages/LoginPage'
 import { NewCrawlPage } from './pages/NewCrawlPage'
+import { PageDetailPage } from './pages/PageDetailPage'
 import { ProjectPage } from './pages/ProjectPage'
 import { ProjectsPage } from './pages/ProjectsPage'
 
@@ -28,6 +29,7 @@ export function AppRoutes() {
         <Route path="/projects/:projectId" element={<ProjectPage />} />
         <Route path="/projects/:projectId/crawls/new" element={<NewCrawlPage />} />
         <Route path="/crawls/:crawlId" element={<CrawlPage />} />
+        <Route path="/crawls/:crawlId/pages/:pageId" element={<PageDetailPage />} />
       </Routes>
     </>
   )

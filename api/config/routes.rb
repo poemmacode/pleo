@@ -16,8 +16,12 @@ Rails.application.routes.draw do
           post :resume
           post :cancel
         end
-        resources :pages, only: :index, controller: "crawl_pages"
+        resources :pages, only: %i[index show], controller: "crawl_pages"
         get :urls, to: "crawl_pages#urls"
+        get :duplicates, to: "crawl_pages#duplicates"
+        get :issues, to: "crawl_issues#index"
+        get "issues/:check_key", to: "crawl_issues#show", constraints: { check_key: /[a-z0-9_.]+/ }, format: false
+        post :audit, to: "crawl_issues#rerun"
       end
       resources :domains, only: %i[show destroy] do
         post :verify, on: :member

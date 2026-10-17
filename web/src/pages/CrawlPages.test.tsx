@@ -27,7 +27,7 @@ const crawl: Crawl = {
   id: 9, project_id: 3, domain: { id: 1, host: 'ejemplo.com', verified: true }, status: 'running', status_reason: null,
   config: {} as Crawl['config'], current_rps: 2,
   progress: { discovered: 40, crawled: 10, failed: 0, skipped: 0, max_pages: 500 },
-  sitemap_status: 'done', created_at: '', started_at: '', finished_at: null,
+  sitemap_status: 'done', audit_status: 'pending', audited_at: null, created_at: '', started_at: '', finished_at: null,
   skipped_by_reason: {}, status_codes: { '200': 9, '404': 1 }, sitemaps: [], hosts: [],
 }
 
@@ -106,5 +106,33 @@ describe('CrawlPage', () => {
     await user.click(screen.getByRole('button', { name: 'Pausar' }))
     await waitFor(() => expect(screen.getByText('En pausa')).toBeInTheDocument())
     expect(screen.getByRole('button', { name: 'Reanudar' })).toBeInTheDocument()
+  })
+})
+
+describe('IssuesSection', () => {
+  it('lists issues by severity and expands findings with guidance', async () => {
+    const done: Crawl = { ...crawl, status: 'completed', audit_status: 'done', audited_at: '2026-10-17T10:00:00Z' }
+    server.use(
+      http.get(api('/crawls/9'), () => HttpResponse.json({ data: done })),
+      http.get(api('/crawls/9/pages'), () => HttpResponse.json({ data: [], meta: { next_cursor: null } })),
+      http.get(api('/crawls/9/issues'), () =>
+        HttpResponse.json({
+          data: [{ check_key: 'http.4xx', category: 'crawlability', severity: 'error', weight: 9, title: 'Páginas con error 4xx',
+                   description: 'La URL responde con un error.', how_to_fix: 'Redirige con 301.', count: 1 }],
+          meta: { by_severity: { error: 1, warning: 0, notice: 0 } },
+        }),
+      ),
+      http.get(api('/crawls/9/issues/http.4xx'), () =>
+        HttpResponse.json({ data: [{ id: 1, page_id: 5, url: 'https://ejemplo.com/rota', details: { status: 404 } }], meta: { next_cursor: null } }),
+      ),
+    )
+    const user = userEvent.setup()
+    renderWithProviders(<Routes><Route path="/crawls/:crawlId" element={<CrawlPage />} /></Routes>, { route: '/crawls/9' })
+
+    await user.click(await screen.findByRole('button', { name: /Páginas con error 4xx/ }))
+
+    expect(await screen.findByRole('link', { name: 'https://ejemplo.com/rota' })).toHaveAttribute('href', '/crawls/9/pages/5')
+    expect(screen.getByText('status: 404')).toBeInTheDocument()
+    expect(screen.getByText('Redirige con 301.')).toBeInTheDocument()
   })
 })

@@ -27,7 +27,7 @@ Formato: **ID · historia** — criterios de aceptación (CA). Estimación en d�
 - **B.4 · Fetch y almacenamiento** — CA: cada URL produce exactamente un registro en `pages` o un `skip_reason`; redirects registrados como páginas 3xx con `redirect_url` (cadenas reconstruidas en C); el crawl termina (`completed`) cuando no quedan pendientes o se alcanza `max_pages`, y nunca supera `max_pages`.
 - **B.5 · Progreso** — CA: `GET /crawls/:id` refleja descubiertas/rastreadas/fallidas con retraso ≤ 5 s.
 
-### Épica C — Extracción y checks (≈10 d)
+### Épica C — Extracción y checks (≈10 d) — ✅ implementada (ver [ADR 0005](adr/0005-auditoria.md))
 
 - **C.1 · Extracción on-page** — CA: con un set de ≥20 fixtures HTML (incl. HTML malformado, `<base>`, múltiples titles, canonical en header y en head), los campos de 03 §4 coinciden con lo esperado.
 - **C.2 · Enlaces y estados** — CA: cada enlace interno resuelve `to_page_id` y `status_code`; enlaces externos se verifican con HEAD (fallback GET con rango) limitados a 1 req/s por host externo y máx. 1 000 por crawl.

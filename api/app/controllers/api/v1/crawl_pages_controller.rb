@@ -1,6 +1,6 @@
 # Pages and frontier URLs of a crawl, with keyset pagination (?after=<id>&limit=).
 class Api::V1::CrawlPagesController < ApplicationController
-  MAX_LIMIT = 200
+  include CrawlScoped
 
   before_action :set_crawl
 
@@ -11,6 +11,31 @@ class Api::V1::CrawlPagesController < ApplicationController
     paginate(pages) { PageSerializer.call(_1) }
   end
 
+  def show
+    page = @crawl.pages.find(params[:id])
+    render json: { data: PageSerializer.call(page, detail: true) }
+  end
+
+  # Groups of pages sharing a title or description, or with near-identical text.
+  def duplicates
+    groups = case params[:type]
+    when "title", "description"
+      column = :"#{params[:type] == "title" ? "title" : "description"}_hash"
+      @crawl.pages.where(indexable: true).where.not(column => nil).group_by(&column).values.select { _1.size > 1 }
+    when "content"
+      candidates = @crawl.pages.where(indexable: true).where.not(text_simhash: nil).where(word_count: Audit::Checks::Content::NearDuplicate::MIN_WORDS..)
+      by_id = candidates.index_by(&:id)
+      Audit::NearDuplicates.groups(candidates.map { [ _1.id, _1.text_simhash ] }).map { |ids| ids.map { by_id[_1] } }
+    else
+      return render_error(:bad_request, "invalid_type", "type debe ser title, description o content", field: "type")
+    end
+    data = groups.sort_by { -_1.size }.first(500).map do |pages|
+      { size: pages.size, value: params[:type] == "description" ? pages.first.meta_description : pages.first.title,
+        pages: pages.map { { id: _1.id, url: _1.url } } }
+    end
+    render json: { data: }
+  end
+
   def urls
     urls = @crawl.crawl_urls.order(:id)
     urls = urls.where(state: params.dig(:filter, :state)) if params.dig(:filter, :state).present?
@@ -19,10 +44,6 @@ class Api::V1::CrawlPagesController < ApplicationController
   end
 
   private
-    def set_crawl
-      @crawl = Crawl.joins(:project).where(projects: { user_id: Current.user.id }).find(params[:crawl_id])
-    end
-
     # "404", "4xx" or "error" (no HTTP response).
     def filter_status(scope, value)
       case value.to_s
@@ -31,14 +52,5 @@ class Api::V1::CrawlPagesController < ApplicationController
       when "error" then scope.where(status_code: nil)
       else scope
       end
-    end
-
-    def paginate(scope)
-      limit = params.fetch(:limit, 50).to_i.clamp(1, MAX_LIMIT)
-      scope = scope.where("#{scope.table_name}.id > ?", params[:after].to_i) if params[:after].present?
-      records = scope.limit(limit + 1).to_a
-      more = records.size > limit
-      records = records.first(limit)
-      render json: { data: records.map { yield _1 }, meta: { next_cursor: more ? records.last.id : nil } }
     end
 end

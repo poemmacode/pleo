@@ -8,6 +8,7 @@ class Crawl < ApplicationRecord
   has_many :crawl_hosts, dependent: :delete_all
   has_many :crawl_urls, dependent: :delete_all
   has_many :pages, dependent: :delete_all
+  has_many :issues, dependent: :delete_all
 
   validates :status, inclusion: { in: STATUSES }
 

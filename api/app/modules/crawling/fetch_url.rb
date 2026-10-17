@@ -82,6 +82,11 @@ module Crawling
         )
         html = response.status == 200 && content_type.to_s.match?(HTML_TYPES)
         PageBody.create!(page:, body_gzip: ActiveSupport::Gzip.compress(response.body)) if html && @config.store_html
+        if html
+          PageAnalysis.apply(page, response.body, response.headers)
+        else
+          page.update!(indexable: false, indexability_reason: PageAnalysis.unanalysable_reason(page))
+        end
         @frontier.add([ page.redirect_url ], source: "redirect", depth: @crawl_url.depth) if page.redirect_url
         discover_links(page, response.body) if html
         @frontier.complete(@crawl_url)
@@ -100,7 +105,7 @@ module Crawling
       def store_failure(error)
         Page.create!(crawl: @crawl, crawl_url: @crawl_url, url: @crawl_url.url, depth: @crawl_url.depth,
                      in_sitemap: @crawl_url.in_sitemap, fetch_error: "#{error.class.name.demodulize}: #{error.message}".first(255),
-                     fetched_at: Time.current)
+                     fetched_at: Time.current, indexable: false, indexability_reason: "fetch_error")
         @frontier.complete(@crawl_url)
         @crawl.increment!(pages_failed: 1)
       end
