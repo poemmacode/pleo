@@ -19,12 +19,12 @@ Formato: **ID · historia** — criterios de aceptación (CA). Estimación en d�
 - **A.3 · Rate limiting por host** — CA: token bucket en Redis; con `rps=2` y 10 workers, un test de integración mide ≤ 2 req/s ±10 % al host fixture; `Retry-After` respetado.
 - **A.4 · Autoprotección ante sobrecarga** — *Política implementada (`SafeHttp::AdaptiveRate`); la conexión con el estado del crawl llega en B.1.* CA: si >20 % de respuestas en 60 s son 429/5xx, el rps se divide entre 2; tras 3 reducciones el crawl pasa a `paused` con motivo visible.
 
-### Épica B — Crawling (≈8 d)
+### Épica B — Crawling (≈8 d) — ✅ implementada (ver [ADR 0004](adr/0004-crawling.md))
 
 - **B.1 · Crear/controlar crawl** — CA: `POST /crawls` valida config contra límites (verificado/no verificado); devuelve 202; pause/resume/cancel cambian estado y detienen la emisión de nuevas peticiones en < 5 s.
 - **B.2 · Descubrimiento por sitemaps** — CA: encuentra sitemaps en robots.txt y `/sitemap.xml`; soporta índices anidados (máx. profundidad 3), `.gz`, y >50k URLs por paginación de índices; URLs fuera de scope se ignoran con contador.
 - **B.3 · Descubrimiento por enlaces** — CA: BFS respetando `max_depth`, include/exclude, scope y robots; sin duplicados (constraint único `crawl_id,url_hash`); normalización según 03 §2.
-- **B.4 · Fetch y almacenamiento** — CA: cada URL produce exactamente un registro en `pages` o un `skip_reason`; redirects registrados en `redirect_chain`; el crawl termina (`completed`) cuando no quedan pendientes o se alcanza `max_pages`, y nunca supera `max_pages`.
+- **B.4 · Fetch y almacenamiento** — CA: cada URL produce exactamente un registro en `pages` o un `skip_reason`; redirects registrados como páginas 3xx con `redirect_url` (cadenas reconstruidas en C); el crawl termina (`completed`) cuando no quedan pendientes o se alcanza `max_pages`, y nunca supera `max_pages`.
 - **B.5 · Progreso** — CA: `GET /crawls/:id` refleja descubiertas/rastreadas/fallidas con retraso ≤ 5 s.
 
 ### Épica C — Extracción y checks (≈10 d)

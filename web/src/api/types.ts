@@ -28,3 +28,51 @@ export type Project = {
 }
 
 export type Envelope<T> = { data: T; meta?: Record<string, unknown> }
+
+export type CrawlStatus = 'queued' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled'
+
+export type CrawlConfig = {
+  start_url: string
+  scope: 'domain' | 'subdomain' | 'subfolder'
+  max_pages: number
+  max_depth: number
+  requests_per_second: number
+  include_patterns: string[]
+  exclude_patterns: string[]
+  device: 'desktop' | 'mobile'
+  use_sitemaps: boolean
+  respect_nofollow: boolean
+}
+
+export type Crawl = {
+  id: number
+  project_id: number
+  domain: { id: number; host: string; verified: boolean }
+  status: CrawlStatus
+  status_reason: string | null
+  config: CrawlConfig
+  current_rps: number
+  progress: { discovered: number; crawled: number; failed: number; skipped: number; max_pages: number }
+  sitemap_status: 'pending' | 'done' | 'skipped'
+  created_at: string
+  started_at: string | null
+  finished_at: string | null
+  skipped_by_reason?: Record<string, number>
+  status_codes?: Record<string, number>
+  sitemaps?: { url: string; status: number | null; urls: number; added: number; out_of_scope: number; error: string | null }[]
+  hosts?: { host: string; robots_outcome: string; robots_status: number | null; crawl_delay: number | null }[]
+}
+
+export type CrawlPage = {
+  id: number
+  url: string
+  depth: number | null
+  in_sitemap: boolean
+  status_code: number | null
+  redirect_url: string | null
+  fetch_error: string | null
+  content_type: string | null
+  content_length: number | null
+  truncated: boolean
+  response_ms: number | null
+}

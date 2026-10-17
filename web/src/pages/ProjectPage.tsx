@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../api/client'
-import { useCreateDomain, useDeleteDomain, useDeleteProject, useProject, useVerifyDomain } from '../api/hooks'
+import { useCrawls, useCreateDomain, useDeleteDomain, useDeleteProject, useProject, useVerifyDomain } from '../api/hooks'
 import type { Domain, VerificationMethod } from '../api/types'
 
 export function ProjectPage() {
@@ -48,8 +48,30 @@ export function ProjectPage() {
         ))}
       </ul>
 
+      <CrawlList projectId={projectId} hasDomains={project.data.domains.length > 0} />
+
       <p><button className="danger" onClick={remove}>Eliminar proyecto</button></p>
     </main>
+  )
+}
+
+function CrawlList({ projectId, hasDomains }: { projectId: number; hasDomains: boolean }) {
+  const crawls = useCrawls(projectId)
+  if (!hasDomains) return null
+
+  return (
+    <>
+      <h2>Crawls</h2>
+      {crawls.data?.length === 0 && <p className="muted">Todavía no hay crawls.</p>}
+      <ul className="list">
+        {crawls.data?.map((crawl) => (
+          <li key={crawl.id} className="card">
+            <Link to={`/crawls/${crawl.id}`}>{crawl.domain.host} · {new Date(crawl.created_at).toLocaleString('es')}</Link>
+            <span className="muted">{crawl.status} · {crawl.progress.crawled} páginas</span>
+          </li>
+        ))}
+      </ul>
+    </>
   )
 }
 
@@ -70,6 +92,7 @@ function DomainCard({ domain, projectId }: { domain: Domain; projectId: number }
       <div className="row">
         <strong>{domain.host}</strong>
         <span className={domain.verified ? 'badge ok' : 'badge'}>{domain.verified ? 'Verificado' : 'Sin verificar'}</span>
+        <Link to={`/projects/${projectId}/crawls/new?domain=${domain.id}`}>Nuevo crawl</Link>
       </div>
       {!domain.verified && (
         <>

@@ -1,6 +1,8 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { useLogout, useSession } from './api/hooks'
+import { CrawlPage } from './pages/CrawlPage'
 import { LoginPage } from './pages/LoginPage'
+import { NewCrawlPage } from './pages/NewCrawlPage'
 import { ProjectPage } from './pages/ProjectPage'
 import { ProjectsPage } from './pages/ProjectsPage'
 
@@ -24,6 +26,8 @@ export function AppRoutes() {
       <Routes>
         <Route path="/" element={<ProjectsPage />} />
         <Route path="/projects/:projectId" element={<ProjectPage />} />
+        <Route path="/projects/:projectId/crawls/new" element={<NewCrawlPage />} />
+        <Route path="/crawls/:crawlId" element={<CrawlPage />} />
       </Routes>
     </>
   )

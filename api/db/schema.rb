@@ -10,10 +10,64 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_17_010558) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_17_021525) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "crawl_hosts", force: :cascade do |t|
+    t.bigint "crawl_id", null: false
+    t.string "host", null: false
+    t.string "robots_outcome", null: false
+    t.integer "robots_status"
+    t.text "robots_txt"
+    t.float "crawl_delay"
+    t.jsonb "sitemaps", default: [], null: false
+    t.datetime "fetched_at", null: false
+    t.index ["crawl_id", "host"], name: "index_crawl_hosts_on_crawl_id_and_host", unique: true
+    t.index ["crawl_id"], name: "index_crawl_hosts_on_crawl_id"
+  end
+
+  create_table "crawl_urls", force: :cascade do |t|
+    t.bigint "crawl_id", null: false
+    t.text "url", null: false
+    t.binary "url_hash", null: false
+    t.integer "depth"
+    t.string "source", null: false
+    t.boolean "in_sitemap", default: false, null: false
+    t.string "state", default: "pending", null: false
+    t.string "skip_reason"
+    t.integer "attempts", default: 0, null: false
+    t.datetime "claimed_at"
+    t.index ["crawl_id", "state", "depth", "id"], name: "index_crawl_urls_on_crawl_id_and_state_and_depth_and_id"
+    t.index ["crawl_id", "url_hash"], name: "index_crawl_urls_on_crawl_id_and_url_hash", unique: true
+  end
+
+  create_table "crawls", force: :cascade do |t|
+    t.bigint "project_id", null: false
+    t.bigint "domain_id", null: false
+    t.string "status", default: "queued", null: false
+    t.string "status_reason"
+    t.jsonb "config", default: {}, null: false
+    t.float "current_rps", null: false
+    t.jsonb "adaptive_rate", default: {}, null: false
+    t.string "sitemap_status", default: "pending", null: false
+    t.jsonb "sitemaps", default: [], null: false
+    t.integer "sitemap_urls_out_of_scope", default: 0, null: false
+    t.integer "pages_discovered", default: 0, null: false
+    t.integer "pages_claimed", default: 0, null: false
+    t.integer "pages_crawled", default: 0, null: false
+    t.integer "pages_failed", default: 0, null: false
+    t.integer "pages_skipped", default: 0, null: false
+    t.datetime "terms_accepted_at"
+    t.datetime "started_at"
+    t.datetime "finished_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["domain_id", "status"], name: "index_crawls_on_domain_id_and_status"
+    t.index ["domain_id"], name: "index_crawls_on_domain_id"
+    t.index ["project_id"], name: "index_crawls_on_project_id"
+  end
 
   create_table "domains", force: :cascade do |t|
     t.bigint "project_id", null: false
@@ -27,6 +81,43 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_17_010558) do
     t.datetime "updated_at", null: false
     t.index ["project_id", "host"], name: "index_domains_on_project_id_and_host", unique: true
     t.index ["project_id"], name: "index_domains_on_project_id"
+  end
+
+  create_table "links", force: :cascade do |t|
+    t.bigint "crawl_id", null: false
+    t.bigint "from_page_id", null: false
+    t.text "to_url", null: false
+    t.binary "to_url_hash", null: false
+    t.boolean "internal", null: false
+    t.text "anchor"
+    t.string "rel", default: [], null: false, array: true
+    t.index ["crawl_id", "to_url_hash"], name: "index_links_on_crawl_id_and_to_url_hash"
+    t.index ["from_page_id"], name: "index_links_on_from_page_id"
+  end
+
+  create_table "page_bodies", primary_key: "page_id", force: :cascade do |t|
+    t.binary "body_gzip", null: false
+  end
+
+  create_table "pages", force: :cascade do |t|
+    t.bigint "crawl_id", null: false
+    t.bigint "crawl_url_id", null: false
+    t.text "url", null: false
+    t.integer "depth"
+    t.boolean "in_sitemap", default: false, null: false
+    t.integer "status_code"
+    t.text "redirect_url"
+    t.string "fetch_error"
+    t.string "content_type"
+    t.integer "content_length"
+    t.boolean "truncated", default: false, null: false
+    t.integer "response_ms"
+    t.string "ip"
+    t.jsonb "headers", default: {}, null: false
+    t.datetime "fetched_at", null: false
+    t.index ["crawl_id", "id"], name: "index_pages_on_crawl_id_and_id"
+    t.index ["crawl_id", "status_code"], name: "index_pages_on_crawl_id_and_status_code"
+    t.index ["crawl_url_id"], name: "index_pages_on_crawl_url_id", unique: true
   end
 
   create_table "projects", force: :cascade do |t|
@@ -55,7 +146,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_17_010558) do
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 
+  add_foreign_key "crawl_hosts", "crawls", on_delete: :cascade
+  add_foreign_key "crawl_urls", "crawls", on_delete: :cascade
+  add_foreign_key "crawls", "domains", on_delete: :cascade
+  add_foreign_key "crawls", "projects", on_delete: :cascade
   add_foreign_key "domains", "projects", on_delete: :cascade
+  add_foreign_key "links", "crawls", on_delete: :cascade
+  add_foreign_key "links", "pages", column: "from_page_id", on_delete: :cascade
+  add_foreign_key "page_bodies", "pages", on_delete: :cascade
+  add_foreign_key "pages", "crawl_urls", on_delete: :cascade
+  add_foreign_key "pages", "crawls", on_delete: :cascade
   add_foreign_key "projects", "users", on_delete: :cascade
   add_foreign_key "sessions", "users", on_delete: :cascade
 end

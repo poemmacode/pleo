@@ -2,7 +2,7 @@
 
 Plataforma SEO personal y no comercial. Diseño completo en [docs/](docs/README.md).
 
-Estado: **Épicas 0 y A**: autenticación, proyectos y dominios con verificación (DNS TXT, archivo o meta tag); cliente HTTP seguro (SafeHttp), robots.txt y límite de velocidad por host. El crawler llega con las épicas B–F.
+Estado: **Épicas 0, A y B**: autenticación, proyectos y dominios con verificación (DNS TXT, archivo o meta tag); cliente HTTP seguro (SafeHttp), robots.txt y límite de velocidad por host; crawler con descubrimiento por sitemaps y enlaces, control de pausa/cancelación y explorador de páginas. Los checks de auditoría, la puntuación y los informes llegan con las épicas C–F.
 
 ## Estructura
 
@@ -73,6 +73,11 @@ Todas las respuestas usan `{ data, meta }` o `{ errors: [{ code, detail, field }
 | GET / POST | `/api/v1/projects/:id/domains` | listar / añadir (`domain: { host }`) |
 | GET / DELETE | `/api/v1/domains/:id` | detalle / quitar |
 | POST | `/api/v1/domains/:id/verify` | verificar (`method`: `dns_txt`, `html_file` o `meta`) |
+| GET / POST | `/api/v1/projects/:id/crawls` | listar / crear (`crawl: { domain_id, start_url, scope, max_pages, max_depth, requests_per_second, include_patterns, exclude_patterns, device, use_sitemaps, respect_nofollow, terms_accepted }`) → 202 |
+| GET | `/api/v1/crawls/:id` | estado, progreso, omitidas por motivo, códigos HTTP, robots.txt por host, informe de sitemaps |
+| POST | `/api/v1/crawls/:id/pause` · `resume` · `cancel` | control (409 si la transición no es válida) |
+| GET | `/api/v1/crawls/:id/pages` | páginas; `filter[status_code]=404\|4xx\|error`, `filter[url_contains]=`, `after=<id>&limit=` |
+| GET | `/api/v1/crawls/:id/urls` | frontera; `filter[state]=`, `filter[skip_reason]=` |
 
 ## Seguridad ya implementada
 
@@ -93,6 +98,12 @@ Toda petición saliente hacia URLs de usuarios pasa por `SafeHttp::Client`:
 - `HostRateLimiter`: espaciado por host en Redis compartido por todos los workers; `RetryAfter`; `AdaptiveRate` (reduce a la mitad con >20 % de errores, pausa tras 3 reducciones).
 
 Las pruebas usan Redis db 15 (`TEST_REDIS_URL`) y un servidor HTTP local en 127.0.0.1, que solo se permite en el entorno `test`.
+
+## Crawler (`api/app/modules/crawling/`, `api/app/jobs/crawling/`)
+
+- Límites: dominio verificado hasta 50 000 páginas y 10 req/s; sin verificar, 200 páginas, 0,5 req/s y confirmación de términos. Un crawl activo por host y dos por usuario.
+- `robots.txt` por host (no desactivable), `Crawl-delay`, y reducción automática de la velocidad o pausa si el servidor devuelve muchos 429/5xx.
+- Detalles de diseño en [ADR 0004](docs/adr/0004-crawling.md).
 
 ## Limitaciones actuales
 

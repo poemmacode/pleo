@@ -3,6 +3,7 @@ class Domain < ApplicationRecord
   TXT_PREFIX = "seo-platform-verify=".freeze
 
   belongs_to :project
+  has_many :crawls, dependent: :destroy
 
   attribute :host_input, :string
   before_validation :normalize_host, if: -> { host_input.present? }

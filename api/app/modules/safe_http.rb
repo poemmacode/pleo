@@ -6,12 +6,17 @@ module SafeHttp
 
   class Config
     attr_accessor :allowed_ports, :user_agent
+    attr_writer :resolver
     attr_reader :test_allowed_ips
 
     def initialize
       @allowed_ports = ENV.fetch("SAFE_HTTP_ALLOWED_PORTS", "80,443").split(",").map { Integer(_1.strip) }
       @user_agent = "#{BOT_TOKEN}/0.1 (+#{ENV.fetch("BOT_INFO_URL", "https://github.com/seo-platform/bot")}; uso personal)"
       @test_allowed_ips = []
+    end
+
+    def resolver
+      @resolver ||= Resolver.new
     end
 
     # Lets specs reach the local test server. Refuses to work anywhere but the test environment.

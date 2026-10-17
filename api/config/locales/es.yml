@@ -14,6 +14,19 @@ es:
       domain:
         host: Host
         verification_method: Método de verificación
+  activemodel:
+    attributes:
+      crawling/crawl_config:
+        start_url: URL inicial
+        scope: Alcance
+        max_pages: Máximo de páginas
+        max_depth: Profundidad máxima
+        requests_per_second: Peticiones por segundo
+        include_patterns: Patrones de inclusión
+        exclude_patterns: Patrones de exclusión
+        device: Dispositivo
+        render_js: Renderizado JS
+        terms_accepted: Términos del sitio
   errors:
     format: "%{attribute} %{message}"
     messages:

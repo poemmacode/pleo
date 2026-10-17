@@ -11,7 +11,7 @@ module SafeHttp
     REDIRECT_STATUSES = [ 301, 302, 303, 307, 308 ].freeze
     DEFAULT_MAX_BYTES = 5 * 1024 * 1024
 
-    def initialize(resolver: Resolver.new, user_agent: SafeHttp.config.user_agent, open_timeout: 5,
+    def initialize(resolver: SafeHttp.config.resolver, user_agent: SafeHttp.config.user_agent, open_timeout: 5,
                    read_timeout: 15, total_timeout: 30, max_bytes: DEFAULT_MAX_BYTES, max_redirects: 10)
       @resolver = resolver
       @user_agent = user_agent

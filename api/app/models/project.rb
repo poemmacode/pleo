@@ -1,6 +1,7 @@
 class Project < ApplicationRecord
   belongs_to :user
   has_many :domains, dependent: :destroy
+  has_many :crawls, dependent: :destroy
 
   normalizes :name, with: ->(name) { name.strip }
 

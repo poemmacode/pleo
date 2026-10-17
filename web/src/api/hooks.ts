@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, apiRequest, setCsrfToken } from './client'
-import type { Domain, Envelope, Project, User, VerificationMethod } from './types'
+import type { Crawl, CrawlConfig, CrawlPage, Domain, Envelope, Project, User, VerificationMethod } from './types'
 
 export function useSession() {
   return useQuery({
@@ -93,5 +93,57 @@ export function useDeleteDomain(projectId: number) {
   return useMutation({
     mutationFn: (domainId: number) => apiRequest<void>('DELETE', `/domains/${domainId}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects', projectId] }),
+  })
+}
+
+export const FINISHED_STATUSES = ['completed', 'failed', 'cancelled']
+
+export function useCrawls(projectId: number) {
+  return useQuery({
+    queryKey: ['projects', projectId, 'crawls'],
+    queryFn: async () => (await apiRequest<Envelope<Crawl[]>>('GET', `/projects/${projectId}/crawls`)).data,
+  })
+}
+
+export type NewCrawl = Partial<CrawlConfig> & { domain_id: number; terms_accepted?: boolean }
+
+export function useCreateCrawl(projectId: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (crawl: NewCrawl) => apiRequest<Envelope<Crawl>>('POST', `/projects/${projectId}/crawls`, { crawl }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'crawls'] }),
+  })
+}
+
+// Polls every 3 s until the crawl finishes.
+export function useCrawl(id: number) {
+  return useQuery({
+    queryKey: ['crawls', id],
+    queryFn: async () => (await apiRequest<Envelope<Crawl>>('GET', `/crawls/${id}`)).data,
+    refetchInterval: (query) => (query.state.data && FINISHED_STATUSES.includes(query.state.data.status) ? false : 3000),
+  })
+}
+
+export function useCrawlAction(id: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (action: 'pause' | 'resume' | 'cancel') => apiRequest<Envelope<Crawl>>('POST', `/crawls/${id}/${action}`),
+    onSuccess: (response) => queryClient.setQueryData(['crawls', id], response.data),
+  })
+}
+
+type PagesResponse = Envelope<CrawlPage[]> & { meta: { next_cursor: number | null } }
+
+export function useCrawlPages(id: number, statusFilter: string, refreshKey: unknown) {
+  return useInfiniteQuery({
+    queryKey: ['crawls', id, 'pages', statusFilter, refreshKey],
+    initialPageParam: null as number | null,
+    queryFn: async ({ pageParam }) => {
+      const params = new URLSearchParams({ limit: '50' })
+      if (statusFilter) params.set('filter[status_code]', statusFilter)
+      if (pageParam) params.set('after', String(pageParam))
+      return apiRequest<PagesResponse>('GET', `/crawls/${id}/pages?${params}`)
+    },
+    getNextPageParam: (last) => last.meta.next_cursor,
   })
 }
