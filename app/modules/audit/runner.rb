@@ -12,6 +12,7 @@ module Audit
       LinkGraph.build(crawl)
       ExternalLinkChecker.new(crawl).call if check_external_links
       PageRank.compute_for(crawl)
+      Performance::Measure.call(crawl) # after PageRank: the sample favours important pages
       crawl.update!(site_facts: SiteFacts.collect(crawl))
       Catalog.sync_definitions!
 

@@ -1,0 +1,30 @@
+<%# Rendered inside the audit section (also from broadcasts): depends only on the crawl. %>
+<% case crawl.performance_status %>
+<% when "skipped_no_key" %>
+  <p class="notice">Rendimiento no medido: falta la API key de PageSpeed Insights (<code>PAGESPEED_API_KEY</code>).</p>
+<% when "done", "limited" %>
+  <% results = crawl.performance_results.includes(:page).sort_by { [ _1.performance_score || 101, _1.id ] } %>
+  <h2>Rendimiento móvil (PageSpeed Insights)</h2>
+  <% if crawl.performance_status == "limited" %>
+    <p class="muted">Se alcanzó el límite diario de mediciones; solo se midieron <%= results.size %> páginas.</p>
+  <% end %>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Página</th><th>Puntuación</th><th>LCP</th><th>CLS</th><th>TBT</th><th>Usuarios reales</th></tr></thead>
+      <tbody>
+        <% results.each do |result| %>
+          <tr>
+            <td class="url"><%= link_to result.page.url, crawl_page_path(crawl, result.page_id), data: { turbo_frame: "_top" } %>
+              <% if result.opportunities.any? %><div class="muted">Mejora principal: <%= result.opportunities.first["title"] %> (−<%= format_ms(result.opportunities.first["savings_ms"]) %>)</div><% end %>
+              <% if result.error %><div class="error"><%= result.error %></div><% end %></td>
+            <td><strong class="<%= psi_score_class(result.performance_score) %>"><%= result.performance_score || "—" %></strong></td>
+            <td><%= format_ms(result.lcp_ms) %></td>
+            <td><%= format_cls(result.cls) %></td>
+            <td><%= format_ms(result.tbt_ms) %></td>
+            <td class="muted"><%= field_summary(result) unless result.error %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>

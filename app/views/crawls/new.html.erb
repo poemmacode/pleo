@@ -71,6 +71,17 @@
 
     <label class="check"><%= f.check_box :use_sitemaps, checked: @form[:use_sitemaps].to_s != "0" && @form[:use_sitemaps] != false %> Descubrir URLs desde los sitemaps</label>
     <label class="check"><%= f.check_box :respect_nofollow, checked: @form[:respect_nofollow].to_s == "1" %> No seguir enlaces nofollow</label>
+    <div class="row">
+      <label class="check"><%= f.check_box :run_pagespeed, checked: @form[:run_pagespeed].to_s != "0" && @form[:run_pagespeed] != false %> Medir rendimiento con PageSpeed Insights (móvil)</label>
+      <label class="inline">
+        Páginas a medir
+        <%= f.number_field :pagespeed_sample, value: @form[:pagespeed_sample], min: 1, max: Crawling::CrawlConfig::MAX_PAGESPEED_SAMPLE, placeholder: "10", class: "narrow-input" %>
+      </label>
+    </div>
+    <%= err.call(:pagespeed_sample) %>
+    <% unless Performance.api_key %>
+      <p class="muted">PageSpeed Insights necesita una API key: define <code>PAGESPEED_API_KEY</code> (ver docs/deploy.md). Sin ella, el rendimiento no se mide.</p>
+    <% end %>
     <% unless @domain.verified? %>
       <label class="check">
         <%= f.check_box :terms_accepted, checked: @form[:terms_accepted].to_s == "1" %>

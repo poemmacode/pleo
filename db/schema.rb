@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_20_044812) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_20_050354) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -83,6 +83,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_20_044812) do
     t.jsonb "site_facts", default: {}, null: false
     t.float "health_score"
     t.jsonb "category_scores", default: {}, null: false
+    t.string "performance_status"
     t.index ["domain_id", "status"], name: "index_crawls_on_domain_id_and_status"
     t.index ["domain_id"], name: "index_crawls_on_domain_id"
     t.index ["project_id"], name: "index_crawls_on_project_id"
@@ -208,6 +209,29 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_20_044812) do
     t.index ["crawl_url_id"], name: "index_pages_on_crawl_url_id", unique: true
   end
 
+  create_table "performance_results", force: :cascade do |t|
+    t.bigint "crawl_id", null: false
+    t.bigint "page_id", null: false
+    t.string "strategy", default: "mobile", null: false
+    t.integer "performance_score"
+    t.integer "lcp_ms"
+    t.float "cls"
+    t.integer "tbt_ms"
+    t.integer "fcp_ms"
+    t.integer "speed_index_ms"
+    t.integer "ttfb_ms"
+    t.jsonb "opportunities", default: [], null: false
+    t.string "field_scope"
+    t.string "field_category"
+    t.integer "field_lcp_ms"
+    t.float "field_cls"
+    t.integer "field_inp_ms"
+    t.string "error"
+    t.datetime "fetched_at", null: false
+    t.index ["crawl_id", "page_id", "strategy"], name: "index_performance_results_on_crawl_id_and_page_id_and_strategy", unique: true
+    t.index ["page_id"], name: "index_performance_results_on_page_id"
+  end
+
   create_table "projects", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "name", null: false
@@ -249,6 +273,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_20_044812) do
   add_foreign_key "page_structured_data", "pages", on_delete: :cascade
   add_foreign_key "pages", "crawl_urls", on_delete: :cascade
   add_foreign_key "pages", "crawls", on_delete: :cascade
+  add_foreign_key "performance_results", "crawls", on_delete: :cascade
+  add_foreign_key "performance_results", "pages", on_delete: :cascade
   add_foreign_key "projects", "users", on_delete: :cascade
   add_foreign_key "sessions", "users", on_delete: :cascade
 end

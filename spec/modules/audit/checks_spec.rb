@@ -62,7 +62,9 @@ RSpec.describe "Audit checks" do
       C::Metadata::DescriptionDuplicate, C::Content::NearDuplicate, C::Links::InternalBroken, C::Links::ExternalBroken,
       C::Links::InternalNofollow, C::Links::ToRedirect, C::Https::HttpLinks, C::StructuredData::InvalidJson,
       C::StructuredData::UnknownType, C::StructuredData::MissingRequired, C::StructuredData::None,
-      C::AiSearch::BotsBlocked, C::AiSearch::LlmsTxtMissing
+      C::AiSearch::BotsBlocked, C::AiSearch::LlmsTxtMissing,
+      C::MobilePerformance::LcpPoor, C::MobilePerformance::ClsPoor, C::MobilePerformance::InpPoor,
+      C::MobilePerformance::ScoreLow
     ]
     expect(Audit::Catalog::CHECKS - covered).to be_empty
   end
@@ -200,6 +202,30 @@ RSpec.describe "Audit checks" do
       expect(findings_for(C::StructuredData::UnknownType).first.details).to eq(types: [ "Prodcut" ])
       expect(findings_for(C::StructuredData::MissingRequired).first.details).to eq(missing: [ "Product · name" ])
       expect(flagged_urls(C::StructuredData::None)).to eq([ "https://example.com/sin-marcado" ])
+    end
+  end
+
+  describe "performance (PageSpeed sample)" do
+    def measure(page, **attrs)
+      PerformanceResult.create!({ crawl: audit_crawl, page:, fetched_at: Time.current, performance_score: 95, lcp_ms: 1500,
+                                  cls: 0.02, field_scope: nil }.merge(attrs))
+    end
+
+    it "flags poor vitals, preferring page-level field data, and ignores unmeasured pages" do
+      measure(audit_page("/lab-slow"), lcp_ms: 4500, cls: 0.3, performance_score: 30)
+      measure(audit_page("/field-slow"), lcp_ms: 2000, field_scope: "url", field_lcp_ms: 4200, field_inp_ms: 700, field_cls: 0.05)
+      measure(audit_page("/origin-only"), lcp_ms: 2000, field_scope: "origin", field_lcp_ms: 9000, field_inp_ms: 900)
+      measure(audit_page("/broken"), error: "NO_FCP", lcp_ms: nil, performance_score: nil)
+      measure(audit_page("/fast"))
+      audit_page("/not-measured")
+
+      expect(findings_for(C::MobilePerformance::LcpPoor).map { [ _1.url, _1.details ] }).to eq([
+        [ "https://example.com/lab-slow", { lcp_ms: 4500, source: "laboratorio" } ],
+        [ "https://example.com/field-slow", { lcp_ms: 4200, source: "campo" } ]
+      ])
+      expect(flagged_urls(C::MobilePerformance::ClsPoor)).to eq([ "https://example.com/lab-slow" ])
+      expect(flagged_urls(C::MobilePerformance::InpPoor)).to eq([ "https://example.com/field-slow" ])
+      expect(flagged_urls(C::MobilePerformance::ScoreLow)).to eq([ "https://example.com/lab-slow" ])
     end
   end
 

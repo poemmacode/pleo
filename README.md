@@ -2,14 +2,15 @@
 
 Plataforma SEO personal y no comercial. El diseño completo está en [docs/](docs/README.md).
 
-Estado: **Épicas 0, A, B, C y D**, más la interfaz en Hotwire. Incluye:
+Estado: **Épicas 0, A, B, C, D y E**, más la interfaz en Hotwire. Incluye:
 - autenticación, proyectos y dominios con verificación (DNS TXT, archivo o meta tag);
 - cliente HTTP seguro (SafeHttp), robots.txt y límite de velocidad por host;
 - crawler con descubrimiento por sitemaps y enlaces, y progreso en vivo;
 - auditoría con 54 checks;
-- puntuación de salud global y por categoría, comparada con el crawl anterior, y problemas ordenados por prioridad.
+- puntuación de salud global y por categoría, comparada con el crawl anterior, y problemas ordenados por prioridad;
+- rendimiento móvil con PageSpeed Insights (Lighthouse y Core Web Vitals de usuarios reales vía CrUX) sobre una muestra de páginas; necesita `PAGESPEED_API_KEY` (ver [docs/deploy.md](docs/deploy.md)).
 
-PageSpeed y los informes llegan con las épicas E–F.
+Los informes exportables llegan con la épica F.
 
 ## Estructura
 

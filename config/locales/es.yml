@@ -44,6 +44,7 @@ es:
         device: Dispositivo
         render_js: Renderizado JS
         terms_accepted: Términos del sitio
+        pagespeed_sample: Páginas a medir
   errors:
     format: "%{attribute} %{message}"
     messages:

@@ -21,6 +21,11 @@ module Audit
       def site_wide! = @site_wide = true
 
       def site_wide? = @site_wide == true
+
+      # Checks evaluated only on a sample (PageSpeed): coverage is relative to the measured pages.
+      def sampled! = @sampled = true
+
+      def sampled? = @sampled == true
     end
 
     attr_reader :context

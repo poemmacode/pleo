@@ -54,6 +54,18 @@ RSpec.describe Audit::Scoring do
     expect(crawl.category_scores["ai_search"]).to eq((100 * (1 - 0.25 / ai_total)).round(1))
   end
 
+  it "measures coverage of PageSpeed checks against the measured sample" do
+    pages = Array.new(10) { audit_page("/p#{_1}") }
+    pages.first(2).each { PerformanceResult.create!(crawl:, page: _1, fetched_at: Time.current, lcp_ms: 5000) }
+    issue("perf.lcp_poor", page: pages.first)
+    described_class.call(crawl)
+
+    performance = Audit::Catalog.definitions.select { _1[:category] == "performance" }
+    total = performance.sum { _1[:weight] * described_class::SEVERITY_FACTORS[_1[:severity]] }
+    # 1 of 2 measured pages (not 1 of 10 crawled) → √0.5
+    expect(crawl.category_scores["performance"]).to eq((100 * (1 - 5 * Math.sqrt(0.5) / total)).round(1))
+  end
+
   it "ranks findings on important pages above the same finding on minor pages" do
     home = audit_page("/", internal_pagerank: 0.5)
     minor = audit_page("/minor", internal_pagerank: 0.05)

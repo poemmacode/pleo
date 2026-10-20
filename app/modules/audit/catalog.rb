@@ -1,5 +1,5 @@
 module Audit
-  # Every check, in report order. Performance checks that need PageSpeed Insights come with Épica E.
+  # Every check, in report order.
   module Catalog
     CHECKS = [
       Checks::Crawlability::Http4xx, Checks::Crawlability::Http5xx, Checks::Crawlability::FetchFailed,
@@ -20,6 +20,8 @@ module Audit
       Checks::StructuredData::None,
       Checks::Https::NotUsed, Checks::Https::MixedContent, Checks::Https::HttpLinks, Checks::Https::CertInvalid,
       Checks::MobilePerformance::ViewportMissing, Checks::MobilePerformance::PageTooLarge, Checks::MobilePerformance::SlowResponse,
+      Checks::MobilePerformance::LcpPoor, Checks::MobilePerformance::ClsPoor, Checks::MobilePerformance::InpPoor,
+      Checks::MobilePerformance::ScoreLow,
       Checks::AiSearch::BotsBlocked, Checks::AiSearch::LlmsTxtMissing
     ].freeze
 

@@ -141,3 +141,5 @@ details > summary::-webkit-details-marker { display: none; }
 .categories .bar { height: 8px; border-radius: 999px; background: var(--border); overflow: hidden; }
 .categories .bar > span { display: block; height: 100%; background: currentColor; }
 .categories .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+input.narrow-input { width: 6em; }

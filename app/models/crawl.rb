@@ -9,6 +9,7 @@ class Crawl < ApplicationRecord
   has_many :crawl_urls, dependent: :delete_all
   has_many :pages, dependent: :delete_all
   has_many :issues, dependent: :delete_all
+  has_many :performance_results, dependent: :delete_all
 
   validates :status, inclusion: { in: STATUSES }
 
@@ -18,6 +19,12 @@ class Crawl < ApplicationRecord
 
   def crawl_config
     @crawl_config ||= Crawling::CrawlConfig.from_stored(config)
+  end
+
+  # Memoized config objects must not outlive a reload.
+  def reload(*)
+    @crawl_config = @crawl_scope = nil
+    super
   end
 
   def crawl_scope

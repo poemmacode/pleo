@@ -18,6 +18,34 @@
     </dl>
   </section>
 
+  <% @page.performance_results.each do |result| %>
+    <section class="card stack">
+      <h2>Rendimiento móvil (PageSpeed Insights)</h2>
+      <% if result.error %>
+        <p class="error"><%= result.error %></p>
+      <% else %>
+        <dl class="stats">
+          <div><dt>Puntuación</dt><dd class="<%= psi_score_class(result.performance_score) %>"><%= result.performance_score %></dd></div>
+          <div><dt>LCP</dt><dd><%= format_ms(result.lcp_ms) %></dd></div>
+          <div><dt>CLS</dt><dd><%= format_cls(result.cls) %></dd></div>
+          <div><dt>TBT</dt><dd><%= format_ms(result.tbt_ms) %></dd></div>
+          <div><dt>FCP</dt><dd><%= format_ms(result.fcp_ms) %></dd></div>
+          <div><dt>Speed Index</dt><dd><%= format_ms(result.speed_index_ms) %></dd></div>
+          <div><dt>TTFB</dt><dd><%= format_ms(result.ttfb_ms) %></dd></div>
+        </dl>
+        <p class="muted">Usuarios reales (CrUX, p75): <%= field_summary(result) %></p>
+        <% if result.opportunities.any? %>
+          <h3>Oportunidades</h3>
+          <ul class="plain">
+            <% result.opportunities.each do |opportunity| %>
+              <li><%= opportunity["title"] %> <span class="muted">— ahorro estimado <%= format_ms(opportunity["savings_ms"]) %></span></li>
+            <% end %>
+          </ul>
+        <% end %>
+      <% end %>
+    </section>
+  <% end %>
+
   <section class="card stack">
     <h2>Problemas</h2>
     <% if @issues.empty? %>

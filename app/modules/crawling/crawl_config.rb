@@ -15,6 +15,7 @@ module Crawling
     }.freeze
     MIN_RPS = 0.2
     MAX_DEPTH = 50
+    MAX_PAGESPEED_SAMPLE = 30
     MAX_PATTERNS = 20
     MAX_PATTERN_LENGTH = 200
     PATTERN_TIMEOUT = 0.05 # seconds; guards against catastrophic backtracking in user regexes
@@ -32,12 +33,15 @@ module Crawling
     attribute :use_sitemaps, :boolean, default: true
     attribute :respect_nofollow, :boolean, default: false
     attribute :store_html, :boolean, default: true
+    attribute :run_pagespeed, :boolean, default: true
+    attribute :pagespeed_sample, :integer, default: 10
 
     attr_accessor :domain, :terms_accepted
 
     validates :scope, inclusion: { in: Scope::KINDS }
     validates :device, inclusion: { in: DEVICES }
     validates :max_depth, numericality: { only_integer: true, in: 0..MAX_DEPTH }
+    validates :pagespeed_sample, numericality: { only_integer: true, in: 1..MAX_PAGESPEED_SAMPLE }
     validate :start_url_in_domain
     validate :within_limits
     validate :patterns_valid

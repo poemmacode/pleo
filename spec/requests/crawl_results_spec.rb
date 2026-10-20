@@ -50,6 +50,28 @@ RSpec.describe "Crawl results (pages, issues, duplicates)" do
     expect(response).to have_http_status(:not_found)
   end
 
+  it "shows PageSpeed results on the crawl and on the page detail" do
+    page = audit_page("/lento")
+    PerformanceResult.create!(crawl:, page:, fetched_at: Time.current, performance_score: 38, lcp_ms: 5200, cls: 0.31, tbt_ms: 640,
+                              field_scope: "url", field_category: "SLOW", field_lcp_ms: 4600, field_inp_ms: 620, field_cls: 0.12,
+                              opportunities: [ { "id" => "x", "title" => "Mejora la entrega de imágenes", "savings_ms" => 1500 } ])
+    crawl.update!(audit_status: "done", performance_status: "done")
+
+    get crawl_path(crawl)
+    expect(response.body).to include("Rendimiento móvil", "https://example.com/lento", "5,2 s", "0,31",
+                                     "lenta (esta página): LCP 4,6 s, INP 620 ms, CLS 0,12", "Mejora principal: Mejora la entrega de imágenes")
+
+    get crawl_page_path(crawl, page)
+    expect(response.body).to include("Speed Index", "ahorro estimado 1,5 s")
+  end
+
+  it "explains when PageSpeed was skipped for lack of an API key" do
+    crawl.update!(audit_status: "done", performance_status: "skipped_no_key")
+
+    get crawl_path(crawl)
+    expect(response.body).to include("falta la API key de PageSpeed Insights")
+  end
+
   it "filters pages by status class" do
     audit_page("/ok")
     audit_page("/rota", status_code: 404)

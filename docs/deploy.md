@@ -29,6 +29,20 @@ El repositorio incluye un Blueprint, [`render.yaml`](../render.yaml), que crea t
 
 Las variables `RENDER_EXTERNAL_URL`, `DATABASE_URL` y `REDIS_URL` las pone Render. El User-Agent del bot enlaza a `/bot`, una página pública que explica qué hace y cómo bloquearlo.
 
+## PageSpeed Insights (rendimiento y Core Web Vitals)
+
+La auditoría mide el rendimiento móvil de una muestra de páginas con la API de PageSpeed Insights. La API sin key tiene una cuota anónima compartida que suele estar agotada, así que hace falta una **API key gratuita de Google**:
+
+1. En https://console.cloud.google.com crea o elige un proyecto.
+2. **APIs y servicios → Biblioteca**: busca **PageSpeed Insights API** y pulsa **Habilitar**.
+3. **APIs y servicios → Credenciales → Crear credenciales → Clave de API**.
+4. Recomendado: en la clave, **Restricciones de API → Restringir clave → PageSpeed Insights API**, para que no sirva para nada más.
+5. En Render, en el web service → **Environment**, añade `PAGESPEED_API_KEY` con esa clave y guarda (se redespliega). Como la variable se añadió después de crear el Blueprint, hay que ponerla a mano.
+
+Opcional: `PAGESPEED_DAILY_LIMIT` (por defecto 500) limita las mediciones diarias entre todos los crawls. La cuota gratuita de Google es mucho mayor.
+
+Cada medición tarda entre 10 y 60 s en los servidores de Google. Se miden 4 páginas a la vez y 1 petición por segundo, así que la muestra por defecto (10 páginas) añade más o menos un minuto a la auditoría.
+
 ## Límites del plan gratuito (según la documentación de Render, octubre de 2026)
 
 - **La web se duerme tras 15 minutos sin tráfico entrante** y tarda alrededor de 1 minuto en despertar. Mientras duerme, Sidekiq también se detiene: un crawl largo se pausa de hecho y continúa al volver a abrir la app, porque los jobs siguen en Key Value y los claims abandonados se recuperan. Un crawl de 500 páginas a 1 req/s tarda unos 9 minutos; basta con tener la página del crawl abierta mientras dura.

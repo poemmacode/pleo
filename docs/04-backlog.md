@@ -41,7 +41,7 @@ Formato: **ID · historia** — criterios de aceptación (CA). Estimación en d�
 - **D.1 · Health score** — CA: fórmula de 03 §6 implementada; tests con escenarios conocidos (sitio perfecto = 100; todos los checks fallando al 100 % = 0); score por categoría y global expuestos en `/issues/summary`.
 - **D.2 · Priorización** — CA: `/issues` ordenado por `priority_score` desc por defecto; cada issue incluye `how_to_fix`.
 
-### Épica E — Rendimiento (≈3 d)
+### Épica E — Rendimiento (≈3 d) — ✅ implementada (ver [ADR 0008](adr/0008-pagespeed.md))
 
 - **E.1 · PSI** — CA: con API key configurada, mide la muestra definida en 03 §7; guarda métricas de laboratorio y de campo si existen; errores de PSI (p. ej. URL no pública) se registran sin fallar el crawl; respetando un tope diario configurable; tests con respuestas grabadas (VCR).
 - **E.2 · Checks de rendimiento y móvil** — CA: `perf.*` y `mobile.viewport_missing` generados a partir de E.1/C.1.

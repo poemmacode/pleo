@@ -24,6 +24,12 @@ module Audit
 
     def start_url = crawl.crawl_config.start_url
 
+    # Successful PageSpeed measurement of a page, if it was in the sample.
+    def performance(page_id)
+      @performance ||= crawl.performance_results.where(error: nil).index_by(&:page_id)
+      @performance[page_id]
+    end
+
     def site_facts = crawl.site_facts
 
     def structured_data(page_id)

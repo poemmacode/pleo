@@ -1,7 +1,8 @@
 module Audit
   # Health score and issue priority (docs/03 §6, adapted in ADR 0007).
   #
-  #   coverage(check)   = 1 for site-wide checks, else min(1, affected pages or URLs / crawled pages)
+  #   coverage(check)   = 1 for site-wide checks, affected / measured pages for sampled (PageSpeed) checks,
+  #                       else min(1, affected pages or URLs / crawled pages)
   #   penalty(check)    = weight × severity factor × √coverage
   #   category score    = 100 × (1 − Σ penalty / Σ weight × factor over the category's checks)
   #   health score      = Σ category score × category weight / 100
@@ -35,10 +36,15 @@ module Audit
 
     def coverage_by_check(crawl)
       base = [ crawl.pages.count, 1 ].max
+      measured = [ crawl.performance_results.where(error: nil).count, 1 ].max
       checks = Catalog::CHECKS.index_by(&:key)
       crawl.issues.group(:check_key).count.to_h do |key, count|
         check = checks[key]
-        [ key, check&.site_wide? ? 1.0 : [ count.to_f / base, 1.0 ].min ]
+        coverage = if check&.site_wide? then 1.0
+        elsif check&.sampled? then count.to_f / measured
+        else count.to_f / base
+        end
+        [ key, [ coverage, 1.0 ].min ]
       end
     end
 

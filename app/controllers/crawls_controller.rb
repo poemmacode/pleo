@@ -2,7 +2,7 @@ class CrawlsController < ApplicationController
   include CrawlScoped
 
   FORM_FIELDS = %i[start_url scope max_pages max_depth requests_per_second device use_sitemaps respect_nofollow
-                   include_patterns exclude_patterns terms_accepted].freeze
+                   include_patterns exclude_patterns terms_accepted run_pagespeed pagespeed_sample].freeze
 
   before_action :set_project, only: %i[new create]
   before_action :set_crawl, only: %i[show pause resume cancel audit]
@@ -11,7 +11,7 @@ class CrawlsController < ApplicationController
 
   def new
     @domain = selected_domain
-    @form = { use_sitemaps: true }
+    @form = { use_sitemaps: true, run_pagespeed: true }
     redirect_to @project, alert: "Añade primero un dominio al proyecto." unless @domain
   end
 
