@@ -36,3 +36,22 @@ plugin :tmp_restart
 # Specify the PID file. Defaults to tmp/pids/server.pid in development.
 # In other environments, only set the PID file if requested.
 pidfile ENV["PIDFILE"] if ENV["PIDFILE"]
+
+# Render's free plan has no background workers, so Sidekiq can run inside the web process
+# (SIDEKIQ_EMBEDDED=true). Queues and weights come from config/sidekiq.yml.
+if ENV["SIDEKIQ_EMBEDDED"] == "true"
+  embedded_sidekiq = nil
+
+  after_booted do
+    settings = YAML.safe_load(ERB.new(File.read(File.expand_path("sidekiq.yml", __dir__))).result, permitted_classes: [ Symbol ])
+    embedded_sidekiq = Sidekiq.configure_embed do |config|
+      config.queues = settings.fetch(:queues).map { |name, weight| "#{name},#{weight}" }
+      config.concurrency = Integer(ENV.fetch("SIDEKIQ_CONCURRENCY", 3))
+    end
+    embedded_sidekiq.run
+  end
+
+  after_stopped do
+    embedded_sidekiq&.stop
+  end
+end

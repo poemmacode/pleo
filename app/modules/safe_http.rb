@@ -11,8 +11,13 @@ module SafeHttp
 
     def initialize
       @allowed_ports = ENV.fetch("SAFE_HTTP_ALLOWED_PORTS", "80,443").split(",").map { Integer(_1.strip) }
-      @user_agent = "#{BOT_TOKEN}/0.1 (+#{ENV.fetch("BOT_INFO_URL", "https://github.com/seo-platform/bot")}; uso personal)"
+      @user_agent = "#{BOT_TOKEN}/0.1 (+#{bot_info_url}; uso personal)"
       @test_allowed_ips = []
+    end
+
+    # Public page describing the bot (/bot); Render exposes the service URL as RENDER_EXTERNAL_URL.
+    def bot_info_url
+      ENV["BOT_INFO_URL"].presence || "#{ENV.fetch("RENDER_EXTERNAL_URL", "http://localhost:3000")}/bot"
     end
 
     def resolver

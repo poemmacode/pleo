@@ -1,0 +1,50 @@
+# Render Blueprint (https://render.com/docs/blueprint-spec) for the free plan:
+# one web service running Puma with Sidekiq embedded, free Postgres and free Key Value.
+# See docs/deploy.md for the limits of the free plan.
+services:
+  - type: web
+    name: seo-platform
+    runtime: ruby
+    plan: free
+    buildCommand: bundle install && SECRET_KEY_BASE_DUMMY=1 bin/rails assets:precompile
+    # No pre-deploy step or shell on the free plan: migrate and ensure the admin user on boot.
+    startCommand: bin/rails db:prepare && bin/rails users:ensure && bundle exec puma -C config/puma.rb
+    healthCheckPath: /up
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: seo-platform-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: seo-platform-kv
+          property: connectionString
+      - key: RAILS_MASTER_KEY
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SIDEKIQ_EMBEDDED
+        value: "true"
+      - key: SIDEKIQ_CONCURRENCY
+        value: "3"
+      - key: RAILS_MAX_THREADS
+        value: "3"
+      - key: DB_POOL
+        value: "10"
+      - key: WEB_CONCURRENCY
+        value: "0"
+
+  - type: keyvalue
+    name: seo-platform-kv
+    plan: free
+    # Sidekiq must never lose jobs to eviction.
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
+
+databases:
+  - name: seo-platform-db
+    plan: free
+    ipAllowList: []

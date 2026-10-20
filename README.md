@@ -54,6 +54,10 @@ bin/dev
 
 Abre http://127.0.0.1:3000.
 
+## Despliegue
+
+Render (plan gratuito) con el Blueprint [`render.yaml`](render.yaml): ver [docs/deploy.md](docs/deploy.md).
+
 ## Pruebas
 
 ```bash
@@ -71,6 +75,7 @@ La CI (`.github/workflows/ci.yml`) ejecuta lo mismo, más `bundle-audit`, con Po
 | Ruta | Qué hace |
 |---|---|
 | `/session` | login y logout (límite de 10 intentos cada 3 min) |
+| `/bot` | página pública sobre el rastreador (enlazada desde su User-Agent) |
 | `/` y `/projects/:id` | proyectos, dominios (añadir, verificar, quitar) y crawls |
 | `/projects/:id/crawls/new?domain_id=` | nuevo crawl; valores por defecto y límites según si el dominio está verificado |
 | `/crawls/:id` | progreso en vivo, pausa, reanudación, cancelación, auditoría y tabla de páginas |

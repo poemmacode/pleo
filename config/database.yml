@@ -17,5 +17,9 @@ test:
   database: seo_platform_test
 
 production:
-  <<: *default
-  database: seo_platform_production
+  # Hosted Postgres (Render, Fly…) provides DATABASE_URL. With SIDEKIQ_EMBEDDED, Puma threads and
+  # Sidekiq threads share this process, so DB_POOL must cover both.
+  adapter: postgresql
+  encoding: unicode
+  url: <%= ENV["DATABASE_URL"] %>
+  pool: <%= ENV.fetch("DB_POOL") { ENV.fetch("RAILS_MAX_THREADS", 5) } %>

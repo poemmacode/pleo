@@ -2,6 +2,7 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   resource :session, only: %i[new create destroy]
+  get "bot" => "bot#show", as: :bot_info
   root "projects#index"
 
   resources :projects, only: %i[index show create destroy] do
