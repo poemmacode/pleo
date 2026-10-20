@@ -17,7 +17,7 @@ module AuditHelper
     delta = (current - previous).round(1)
     return tag.span("= sin cambios", class: "muted") if delta.zero?
 
-    tag.span("#{delta.positive? ? "▲ +" : "▼ "}#{format_score(delta)}", class: delta.positive? ? "delta-up" : "delta-down")
+    tag.span("#{delta.positive? ? "▲ +" : "▼ −"}#{format_score(delta.abs)}", class: delta.positive? ? "delta-up" : "delta-down")
   end
 
   def severity_badge(severity)

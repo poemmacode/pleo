@@ -26,7 +26,8 @@ RSpec.describe "Crawl results (pages, issues, duplicates)" do
     body = response.body
     expect(body).to include("Salud del sitio", "Rastreabilidad", "Metadatos", "Páginas con error 4xx", "Título demasiado largo",
                             "Cómo arreglarlo", "frente al crawl del", "(70)")
-    expect(body).to include(crawl.health_score > 70 ? "▲ +" : "▼ ")
+    expect(body).to include(crawl.health_score > 70 ? "▲ +" : "▼ −")
+    expect(body).not_to include("−-")
     expect(body.index("Páginas con error 4xx")).to be < body.index("Título demasiado largo")
     expect(previous.reload.health_score).to eq(70)
     expect(body).to include(%(src="#{crawl_issue_path(crawl, "http.4xx")}"))
