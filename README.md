@@ -105,7 +105,7 @@ Toda petición saliente hacia URLs de usuarios pasa por `SafeHttp::Client`:
 
 ## Crawler (`app/modules/crawling/`, `app/jobs/crawling/`)
 
-- Dominio verificado: hasta 50 000 páginas y 10 req/s. Sin verificar: 200 páginas, 0,5 req/s y confirmación de los términos del sitio. Un crawl activo por host y dos por usuario.
+- Dominio verificado: hasta 50 000 páginas y 10 req/s. Sin verificar: hasta 2 000 páginas y 2 req/s (por defecto 500 y 1 req/s), confirmando que los términos del sitio lo permiten. Un crawl activo por host y dos por usuario.
 - `robots.txt` por host (no desactivable) y `Crawl-delay`. Si el servidor devuelve muchos 429/5xx, la velocidad se reduce y el crawl se pausa solo.
 - Detalles en [ADR 0004](docs/adr/0004-crawling.md).
 

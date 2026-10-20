@@ -31,7 +31,7 @@ Las variables `RENDER_EXTERNAL_URL`, `DATABASE_URL` y `REDIS_URL` las pone Rende
 
 ## Límites del plan gratuito (según la documentación de Render, octubre de 2026)
 
-- **La web se duerme tras 15 minutos sin tráfico entrante** y tarda alrededor de 1 minuto en despertar. Mientras duerme, Sidekiq también se detiene: un crawl largo se pausa de hecho y continúa al volver a abrir la app, porque los jobs siguen en Key Value y los claims abandonados se recuperan. Para crawls de 200 páginas a 0,5 req/s (unos 7 minutos) basta con tener la página del crawl abierta.
+- **La web se duerme tras 15 minutos sin tráfico entrante** y tarda alrededor de 1 minuto en despertar. Mientras duerme, Sidekiq también se detiene: un crawl largo se pausa de hecho y continúa al volver a abrir la app, porque los jobs siguen en Key Value y los claims abandonados se recuperan. Un crawl de 500 páginas a 1 req/s tarda unos 9 minutos; basta con tener la página del crawl abierta mientras dura.
 - **Postgres gratis caduca a los 30 días de crearlo** (más 14 días de gracia), no tiene copias de seguridad y es 1 GB. Sirve para probar; para datos que quieras conservar, pasa a un plan de pago.
 - **Key Value gratis no persiste**: si se reinicia, se pierden los jobs en cola. Un crawl en marcha puede quedarse en «Rastreando»; relánzalo.
 - **No hay Shell ni one-off jobs.** Por eso el usuario se crea con `users:ensure` y las migraciones corren al arrancar.

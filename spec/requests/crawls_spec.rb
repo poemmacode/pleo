@@ -24,7 +24,7 @@ RSpec.describe "Crawls" do
     expect(response.body).not_to include("He revisado que los términos")
 
     get new_project_crawl_path(project, domain_id: rival.id)
-    expect(response.body).to include('placeholder="200"', 'placeholder="0.5"', "He revisado que los términos de rival.com")
+    expect(response.body).to include('placeholder="500"', 'placeholder="1.0"', "He revisado que los términos de rival.com")
   end
 
   it "queues a crawl with the given settings, using defaults for empty fields" do
@@ -53,7 +53,7 @@ RSpec.describe "Crawls" do
 
     create_crawl(domain_id: rival.id, terms_accepted: "1")
     crawl = Crawl.last
-    expect(crawl.config).to include("max_pages" => 200, "requests_per_second" => 0.5)
+    expect(crawl.config).to include("max_pages" => 500, "requests_per_second" => 1.0)
     expect(crawl.terms_accepted_at).to be_present
   end
 

@@ -6,7 +6,7 @@
   <h2>Cómo se comporta</h2>
   <ul>
     <li>Respeta siempre <code>robots.txt</code> (RFC 9309), incluido <code>Crawl-delay</code>. Si robots.txt no responde, no rastrea.</li>
-    <li>Sitios no verificados por su propietario: como máximo 200 páginas a 0,5 peticiones por segundo.</li>
+    <li>Sitios no verificados por su propietario: como máximo 2 000 páginas a 2 peticiones por segundo.</li>
     <li>Reduce la velocidad o se detiene solo si el servidor responde con errores 429 o 5xx, y respeta <code>Retry-After</code>.</li>
     <li>No ejecuta JavaScript, no envía formularios y no intenta saltarse inicios de sesión ni CAPTCHAs.</li>
   </ul>

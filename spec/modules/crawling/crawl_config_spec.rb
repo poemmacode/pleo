@@ -27,11 +27,11 @@ RSpec.describe Crawling::CrawlConfig do
   end
 
   it "applies stricter limits and requires terms for unverified domains" do
-    config = build(domain: unverified, max_pages: 201, requests_per_second: 1)
+    config = build(domain: unverified, max_pages: 2_001, requests_per_second: 2.5)
     expect(config.errors.attribute_names).to include(:max_pages, :requests_per_second, :terms_accepted)
     expect(config.errors[:max_pages].first).to include("sin verificar")
 
-    expect(build(domain: unverified, terms: true, max_pages: 200, requests_per_second: 0.5)).to be_valid
+    expect(build(domain: unverified, terms: true, max_pages: 2_000, requests_per_second: 2.0)).to be_valid
   end
 
   it "rejects invalid or excessive regex patterns and render_js for now" do

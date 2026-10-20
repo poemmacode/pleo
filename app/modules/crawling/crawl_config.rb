@@ -6,12 +6,12 @@ module Crawling
 
     LIMITS = {
       verified: { max_pages: 50_000, max_rps: 10.0 },
-      unverified: { max_pages: 200, max_rps: 0.5 }
+      unverified: { max_pages: 2_000, max_rps: 2.0 }
     }.freeze
     # Used when the form leaves a field empty; unverified domains get values within their limits.
     DEFAULTS = {
       verified: { max_pages: 500, requests_per_second: 2.0 },
-      unverified: { max_pages: 200, requests_per_second: 0.5 }
+      unverified: { max_pages: 500, requests_per_second: 1.0 }
     }.freeze
     MIN_RPS = 0.2
     MAX_DEPTH = 50

@@ -15,6 +15,10 @@ Fecha: 2026-10-17 · Estado: aceptada
 9. **Reintentos**: 429/503 (respetando `Retry-After` vía `penalize`) y errores de conexión, hasta 3 intentos. Los timeouts se registran directamente como fallo (`fetch_error`).
 10. **Velocidad adaptativa**: `SafeHttp::AdaptiveRate` se persiste en `crawls.adaptive_rate` bajo `with_lock`. Con `:pause`, el crawl pasa a `paused` con `status_reason = server_overloaded`.
 
+## Cambio posterior (2026-10-20)
+
+Límites para dominios **sin verificar** ampliados de 200 páginas a 0,5 req/s a **2 000 páginas y 2 req/s**, con valores por defecto de 500 páginas a 1 req/s. Se mantiene la confirmación de términos. Motivo: con 200 páginas no se podían hacer auditorías útiles de sitios propios sin verificarlos antes. 2 req/s sigue siendo una carga baja para cualquier servidor, y `robots.txt`, `Crawl-delay` y la velocidad adaptativa siguen aplicándose.
+
 ## Limitaciones
 
 - La prueba de integración ejecuta los jobs en línea (`perform_enqueued_jobs`), así que no ejerce concurrencia real. La concurrencia se probó a mano con Sidekiq contra books.toscrape.com: 20 páginas a 0,5 req/s, separación mínima medida de 1,9 s.

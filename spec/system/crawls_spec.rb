@@ -15,8 +15,8 @@ RSpec.describe "Crawls", type: :system do
     expect(page).to have_no_text("He revisado que los términos")
 
     select "rival.com (sin verificar)", from: "crawl_domain_id"
-    expect(page).to have_field("Máximo de páginas", placeholder: "200")
-    expect(page).to have_field("Peticiones por segundo", placeholder: "0.5")
+    expect(page).to have_field("Máximo de páginas", placeholder: "500")
+    expect(page).to have_field("Peticiones por segundo", placeholder: "1.0")
     click_on "Iniciar crawl"
 
     expect(page).to have_css(".error", text: "debes confirmar que los términos del sitio permiten este rastreo")
