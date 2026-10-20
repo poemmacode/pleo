@@ -1,8 +1,8 @@
 module AuditHelpers
   GOOD_PAGE = {
     status_code: 200, content_type: "text/html", extracted: true, indexable: true, depth: 1, in_sitemap: false,
-    title: "Guía completa de SEO técnico", title_count: 1, meta_description: "D" * 120, meta_description_count: 1,
-    h1: [ "SEO técnico paso a paso" ], headings: [ { "level" => 1, "text" => "SEO" }, { "level" => 2, "text" => "A" } ],
+    title: "Complete technical SEO guide", title_count: 1, meta_description: "D" * 120, meta_description_count: 1,
+    h1: [ "Technical SEO step by step" ], headings: [ { "level" => 1, "text" => "SEO" }, { "level" => 2, "text" => "A" } ],
     word_count: 800, viewport: "width=device-width", images_count: 2, images_missing_alt: 0, mixed_content_count: 0,
     links_count: 40, response_ms: 200, content_length: 30_000, inlinks_count: 3, hreflang: []
   }.freeze

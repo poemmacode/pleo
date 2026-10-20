@@ -7,11 +7,11 @@ module PsiHelpers
       "speed-index" => { "numericValue" => 4100 }, "server-response-time" => { "numericValue" => 320 }
     }
     if lighthouse >= 12
-      audits["render-blocking-insight"] = { "title" => "Solicitudes que bloquean el renderizado", "score" => 0, "metricSavings" => { "LCP" => 900, "FCP" => 700 } }
-      audits["image-delivery-insight"] = { "title" => "Mejora la entrega de imágenes", "score" => 0.5, "metricSavings" => { "LCP" => 1500 } }
-      audits["tiny-insight"] = { "title" => "Ahorro mínimo", "score" => 0, "metricSavings" => { "LCP" => 40 } }
+      audits["render-blocking-insight"] = { "title" => "Render-blocking requests", "score" => 0, "metricSavings" => { "LCP" => 900, "FCP" => 700 } }
+      audits["image-delivery-insight"] = { "title" => "Improve image delivery", "score" => 0.5, "metricSavings" => { "LCP" => 1500 } }
+      audits["tiny-insight"] = { "title" => "Tiny saving", "score" => 0, "metricSavings" => { "LCP" => 40 } }
     else
-      audits["unused-javascript"] = { "title" => "Reduce el JavaScript sin usar", "score" => 0.3, "details" => { "type" => "opportunity", "overallSavingsMs" => 1200 } }
+      audits["unused-javascript"] = { "title" => "Reduce unused JavaScript", "score" => 0.3, "details" => { "type" => "opportunity", "overallSavingsMs" => 1200 } }
     end
     body = { "lighthouseResult" => { "categories" => { "performance" => { "score" => score } }, "audits" => audits } }
     if field

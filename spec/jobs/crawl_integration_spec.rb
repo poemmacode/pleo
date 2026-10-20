@@ -54,7 +54,7 @@ RSpec.describe "Crawling a site end to end", type: :job do
     expect(page.call("/about")).to have_attributes(depth: 1, in_sitemap: true)
     expect(page.call("/orphan")).to have_attributes(depth: nil, in_sitemap: true)
     expect(page.call("/deep/3").depth).to eq(3)
-    expect(page.call("/").body).to include("Sobre nosotros")
+    expect(page.call("/").body).to include("About us")
   end
 
   it "extracts on-page fields while crawling and marks non-HTML or failed pages as not indexable" do
@@ -95,7 +95,7 @@ RSpec.describe "Crawling a site end to end", type: :job do
     home = crawl.pages.find_by!(url: "#{origin}/")
     links = home.links.pluck(:to_url, :internal, :anchor)
 
-    expect(links).to include([ "#{origin}/about", true, "Sobre nosotros" ], [ "https://external.example.net/", false, "Externo" ])
+    expect(links).to include([ "#{origin}/about", true, "About us" ], [ "https://external.example.net/", false, "External" ])
     expect(links.map(&:first)).not_to include(a_string_starting_with("mailto"))
     expect(crawl.pages.find_by!(url: "#{origin}/blog/").links.pluck(:to_url, :rel))
       .to contain_exactly([ "#{origin}/blog/post-1", [ "nofollow" ] ], [ "#{origin}/blog/page", [] ])

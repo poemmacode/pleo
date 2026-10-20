@@ -9,36 +9,36 @@ RSpec.describe Crawling::PageExtractor do
   # Each fixture is a small HTML document with the fields we expect to be extracted.
   FIXTURES = {
     "basic page" => [
-      '<html lang="es-ES"><head><meta charset="UTF-8"><title>  Guía   SEO </title><meta name="description" content=" Una guía "></head><body><h1>Guía</h1></body></html>',
-      { title: "Guía SEO", title_count: 1, meta_description: "Una guía", meta_description_count: 1, lang: "es-ES", charset: "utf-8", h1: [ "Guía" ] }
+      '<html lang="en-GB"><head><meta charset="UTF-8"><title>  SEO   guide </title><meta name="description" content=" A guide "></head><body><h1>Guide</h1></body></html>',
+      { title: "SEO guide", title_count: 1, meta_description: "A guide", meta_description_count: 1, lang: "en-GB", charset: "utf-8", h1: [ "Guide" ] }
     ],
     "no head elements" => [
-      "<p>solo texto</p>",
+      "<p>just text</p>",
       { title: nil, title_count: 0, meta_description: nil, meta_description_count: 0, lang: nil, canonical: nil, indexable: true }
     ],
     "multiple titles, svg title ignored" => [
-      "<html><head><title>A</title><title>B</title></head><body><svg><title>icono</title></svg></body></html>",
+      "<html><head><title>A</title><title>B</title></head><body><svg><title>icon</title></svg></body></html>",
       { title: "A", title_count: 2 }
     ],
     "empty title" => [ "<title>   </title>", { title: nil, title_count: 1 } ],
     "duplicate meta descriptions, case-insensitive name" => [
-      '<meta name="Description" content="uno"><meta name="description" content="dos">',
-      { meta_description: "uno", meta_description_count: 2 }
+      '<meta name="Description" content="one"><meta name="description" content="two">',
+      { meta_description: "one", meta_description_count: 2 }
     ],
     "self canonical (relative) is indexable" => [
       '<head><link rel="canonical" href="/blog/post"></head>',
       { canonical: URL, canonical_hrefs: [ "/blog/post" ], indexable: true, indexability_reason: nil }
     ],
     "canonical to another page" => [
-      '<head><link rel="Canonical" href="https://example.com/otra"></head>',
-      { canonical: "https://example.com/otra", indexable: false, indexability_reason: "canonicalized" }
+      '<head><link rel="Canonical" href="https://example.com/other"></head>',
+      { canonical: "https://example.com/other", indexable: false, indexability_reason: "canonicalized" }
     ],
     "conflicting canonicals" => [
       '<head><link rel="canonical" href="/a"><link rel="canonical" href="/b"></head>',
       { canonical: nil, canonical_hrefs: [ "/a", "/b" ], indexable: false, indexability_reason: "canonical_conflict" }
     ],
     "canonical in body is ignored" => [
-      '<html><head></head><body><link rel="canonical" href="/otra"></body></html>',
+      '<html><head></head><body><link rel="canonical" href="/other"></body></html>',
       { canonical_hrefs: [], canonical: nil }
     ],
     "meta robots noindex" => [
@@ -58,7 +58,7 @@ RSpec.describe Crawling::PageExtractor do
       { h1: %w[a d], headings: [ { level: 2, text: "b" }, { level: 1, text: "a" }, { level: 4, text: "c" }, { level: 1, text: "d" } ] }
     ],
     "word count excludes scripts, navigation and footer" => [
-      "<body><nav>menú uno dos</nav><script>var x = 1</script><p>Hola, mundo: ¿qué tal? Don't 42</p><footer>pie</footer></body>",
+      "<body><nav>menu one two</nav><script>var x = 1</script><p>Hello, world: ¿qué tal? Don't 42</p><footer>footer</footer></body>",
       { word_count: 6 }
     ],
     "images and alt" => [
@@ -66,7 +66,7 @@ RSpec.describe Crawling::PageExtractor do
       { images_count: 3, images_missing_alt: 1 }
     ],
     "mixed content on https" => [
-      '<img src="http://cdn.e.com/a.png"><script src="http://e.com/x.js"></script><link rel="stylesheet" href="http://e.com/s.css"><img src="https://ok.com/b.png"><a href="http://e.com/">enlace normal</a>',
+      '<img src="http://cdn.e.com/a.png"><script src="http://e.com/x.js"></script><link rel="stylesheet" href="http://e.com/s.css"><img src="https://ok.com/b.png"><a href="http://e.com/">regular link</a>',
       { mixed_content_count: 3, mixed_content_samples: [ "http://cdn.e.com/a.png", "http://e.com/x.js", "http://e.com/s.css" ] }
     ],
     "hreflang alternates" => [
@@ -82,8 +82,8 @@ RSpec.describe Crawling::PageExtractor do
       { open_graph: { "title" => "OG", "image" => "https://e.com/i.png" } }
     ],
     "malformed html still parses" => [
-      "<html><head><title>Roto<body><h1>Sin cerrar<p>texto <b>negrita",
-      { title: "Roto", title_count: 1, h1: [ "Sin cerrar" ], word_count: 4 }
+      "<html><head><title>Broken<body><h1>Not closed<p>some <b>bold",
+      { title: "Broken", title_count: 1, h1: [ "Not closed" ], word_count: 4 }
     ],
     "links counted" => [ '<a href="/a">a</a><a>sin href</a><a href="#x">x</a>', { links_count: 2 } ]
   }.freeze
@@ -113,9 +113,9 @@ RSpec.describe Crawling::PageExtractor do
   end
 
   it "hashes titles and descriptions case-insensitively and computes a simhash" do
-    a = attrs("<title>Hola Mundo</title><p>el rápido zorro marrón salta sobre el perro perezoso</p>")
-    b = attrs("<title>hola mundo</title><p>el rápido zorro marrón salta sobre el perro perezoso hoy</p>")
-    c = attrs("<title>Otro</title><p>contenido completamente distinto sobre recetas de cocina mediterránea</p>")
+    a = attrs("<title>Hello World</title><p>the quick brown fox jumps over the lazy dog</p>")
+    b = attrs("<title>hello world</title><p>the quick brown fox jumps over the lazy dog today</p>")
+    c = attrs("<title>Other</title><p>completely different content about mediterranean cooking recipes</p>")
 
     expect(a[:title_hash]).to eq(b[:title_hash])
     expect(Crawling::Simhash.distance(a[:text_simhash], b[:text_simhash])).to be < Crawling::Simhash.distance(a[:text_simhash], c[:text_simhash])
@@ -140,13 +140,13 @@ RSpec.describe Crawling::StructuredDataExtractor do
     item = extract('<script type="application/ld+json">{"@type": "Product",}</script>').first
 
     expect(item).to include(syntax: "json-ld", valid_syntax: false)
-    expect(item[:validation_errors].first).to start_with("JSON inválido")
+    expect(item[:validation_errors].first).to start_with("invalid JSON")
   end
 
   it "reads nested Microdata items" do
     html = <<~HTML
       <div itemscope itemtype="https://schema.org/Product">
-        <h1 itemprop="name">Zapatilla</h1>
+        <h1 itemprop="name">Sneaker</h1>
         <img itemprop="image" src="/z.jpg">
         <div itemprop="offers" itemscope itemtype="https://schema.org/Offer">
           <meta itemprop="priceCurrency" content="EUR"><span itemprop="price" content="59.90">59,90 €</span>
@@ -158,7 +158,7 @@ RSpec.describe Crawling::StructuredDataExtractor do
     item = extract(html).first
     expect(item).to include(syntax: "microdata", types: [ "Product" ])
     expect(item[:data]).to eq(
-      "@type" => "Product", "name" => "Zapatilla", "image" => "/z.jpg", "sku" => "Z-1",
+      "@type" => "Product", "name" => "Sneaker", "image" => "/z.jpg", "sku" => "Z-1",
       "offers" => { "@type" => "Offer", "priceCurrency" => "EUR", "price" => "59.90" }
     )
   end
@@ -175,8 +175,8 @@ RSpec.describe Crawling::StructuredDataExtractor do
   end
 
   it "reads RDFa Lite" do
-    html = '<div vocab="https://schema.org/" typeof="Event"><span property="name">Concierto</span><time property="startDate" datetime="2026-11-01">1 nov</time></div>'
+    html = '<div vocab="https://schema.org/" typeof="Event"><span property="name">Concert</span><time property="startDate" datetime="2026-11-01">1 nov</time></div>'
 
-    expect(extract(html).first).to include(syntax: "rdfa", types: [ "Event" ], data: { "@type" => "Event", "name" => "Concierto", "startDate" => "2026-11-01" })
+    expect(extract(html).first).to include(syntax: "rdfa", types: [ "Event" ], data: { "@type" => "Event", "name" => "Concert", "startDate" => "2026-11-01" })
   end
 end

@@ -6,11 +6,11 @@ FactoryBot.define do
 
   factory :project do
     user
-    name { "Mi sitio" }
+    name { "My site" }
   end
 
   factory :domain do
     project
-    sequence(:host_input) { |n| "sitio#{n}.com" }
+    sequence(:host_input) { |n| "site#{n}.com" }
   end
 end

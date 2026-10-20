@@ -2,19 +2,13 @@ module Audit
   module Checks
     module Indexability
       class Noindex < PageCheck
-        define key: "robots.noindex", category: "indexability", severity: "notice", weight: 1,
-          title: "Páginas con noindex",
-          description: "La página pide no ser indexada (meta robots o X-Robots-Tag). Revisa que sea intencionado.",
-          fix: "Quita el noindex si la página debe aparecer en buscadores."
+        define key: "robots.noindex", category: "indexability", severity: "notice", weight: 1
 
         def evaluate(page) = page.noindex
       end
 
       class CanonicalMissing < PageCheck
-        define key: "canonical.missing", category: "indexability", severity: "notice", weight: 2,
-          title: "Sin etiqueta canonical",
-          description: "Sin canonical, los buscadores eligen solos la URL principal entre variantes (parámetros, mayúsculas, barra final).",
-          fix: "Añade <link rel=\"canonical\" href=\"URL absoluta\"> apuntando a la propia URL o a su versión principal."
+        define key: "canonical.missing", category: "indexability", severity: "notice", weight: 2
 
         def evaluate(page) = page.canonical_hrefs.empty? && !page.noindex
       end
@@ -28,10 +22,7 @@ module Audit
 
       class CanonicalToNon200 < PageCheck
         include CanonicalTarget
-        define key: "canonical.to_non200", category: "indexability", severity: "error", weight: 7,
-          title: "Canonical hacia una URL que no responde 200",
-          description: "La canonical apunta a una redirección o a un error; los buscadores probablemente la ignorarán.",
-          fix: "Haz que la canonical apunte a la URL final que responde 200."
+        define key: "canonical.to_non200", category: "indexability", severity: "error", weight: 7
 
         def evaluate(page)
           target = target(page)
@@ -41,10 +32,7 @@ module Audit
 
       class CanonicalToNoindex < PageCheck
         include CanonicalTarget
-        define key: "canonical.to_noindex", category: "indexability", severity: "error", weight: 7,
-          title: "Canonical hacia una página con noindex",
-          description: "Señales contradictorias: esta página delega en otra que pide no ser indexada.",
-          fix: "Elige una única URL principal indexable y apunta la canonical a ella."
+        define key: "canonical.to_noindex", category: "indexability", severity: "error", weight: 7
 
         def evaluate(page)
           target = target(page)
@@ -53,19 +41,13 @@ module Audit
       end
 
       class CanonicalMultiple < PageCheck
-        define key: "canonical.multiple", category: "indexability", severity: "error", weight: 6,
-          title: "Varias canonical contradictorias",
-          description: "La página declara canonicals distintas (en el HTML o en la cabecera Link). Los buscadores pueden ignorarlas todas.",
-          fix: "Deja una sola declaración canonical."
+        define key: "canonical.multiple", category: "indexability", severity: "error", weight: 6
 
         def evaluate(page) = page.indexability_reason == "canonical_conflict" && { values: page.canonical_hrefs }
       end
 
       class CanonicalInvalid < PageCheck
-        define key: "canonical.relative_or_invalid", category: "indexability", severity: "warning", weight: 3,
-          title: "Canonical relativa o mal formada",
-          description: "Una canonical relativa o inválida se interpreta mal con facilidad (por ejemplo, en versiones con o sin www).",
-          fix: "Usa siempre una URL absoluta con protocolo y host."
+        define key: "canonical.relative_or_invalid", category: "indexability", severity: "warning", weight: 3
 
         def evaluate(page)
           bad = page.canonical_hrefs.reject { _1.match?(%r{\Ahttps?://}i) && Crawling::UrlNormalizer.normalize(_1) }
@@ -75,10 +57,7 @@ module Audit
 
       class CanonicalChain < PageCheck
         include CanonicalTarget
-        define key: "canonical.chain", category: "indexability", severity: "warning", weight: 4,
-          title: "Canonical encadenada",
-          description: "La canonical apunta a una página que a su vez declara otra canonical.",
-          fix: "Apunta la canonical directamente a la URL principal final."
+        define key: "canonical.chain", category: "indexability", severity: "warning", weight: 4
 
         def evaluate(page)
           target = target(page)
@@ -87,10 +66,7 @@ module Audit
       end
 
       class HreflangNoReturn < PageCheck
-        define key: "hreflang.no_return", category: "indexability", severity: "warning", weight: 4,
-          title: "hreflang sin enlace de retorno",
-          description: "La página declara una versión alternativa que no la declara de vuelta; los buscadores ignoran ese par.",
-          fix: "Añade en cada versión alternativa el hreflang recíproco hacia esta página."
+        define key: "hreflang.no_return", category: "indexability", severity: "warning", weight: 4
 
         def evaluate(page)
           missing = page.hreflang.filter_map do |entry|
@@ -104,10 +80,7 @@ module Audit
       end
 
       class HreflangInvalidCode < PageCheck
-        define key: "hreflang.invalid_code", category: "indexability", severity: "warning", weight: 4,
-          title: "Códigos hreflang inválidos",
-          description: "hreflang debe ser un idioma ISO 639-1, opcionalmente con región ISO 3166-1 (es, es-MX, x-default).",
-          fix: "Corrige los códigos (por ejemplo «es-ES» en lugar de «es_ES» o «sp»)."
+        define key: "hreflang.invalid_code", category: "indexability", severity: "warning", weight: 4
 
         CODE = /\A([a-z]{2})(-[a-z]{4})?(-([a-z]{2}|\d{3}))?\z/i
         LANGUAGES = %w[

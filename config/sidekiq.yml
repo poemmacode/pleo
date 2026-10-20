@@ -1,4 +1,4 @@
-# Queues from docs/02-arquitectura.md §4; weights favour control and audit work over bulk fetching.
+# Queues from docs/02-architecture.md §4; weights favour control and audit work over bulk fetching.
 :concurrency: <%= ENV.fetch("SIDEKIQ_CONCURRENCY", 10) %>
 :queues:
   - [crawl_control, 4]

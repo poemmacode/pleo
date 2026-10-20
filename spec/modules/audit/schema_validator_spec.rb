@@ -5,7 +5,7 @@ RSpec.describe Audit::SchemaValidator do
 
   it "accepts a complete Product with a nested Offer" do
     errors, warnings = validate(
-      "@type" => "Product", "name" => "Zapatilla", "image" => "x.jpg", "description" => "d", "sku" => "1", "brand" => "B",
+      "@type" => "Product", "name" => "Sneaker", "image" => "x.jpg", "description" => "d", "sku" => "1", "brand" => "B",
       "offers" => { "@type" => "Offer", "price" => "59.90", "priceCurrency" => "EUR", "availability" => "https://schema.org/InStock", "url" => "u" }
     )
 
@@ -23,7 +23,7 @@ RSpec.describe Audit::SchemaValidator do
   end
 
   it "applies parent-type rules to subtypes" do
-    errors, = validate("@type" => "Restaurant", "name" => "Casa Pepe")
+    errors, = validate("@type" => "Restaurant", "name" => "Joe's Diner")
 
     expect(errors).to include(code: "missing_required", type: "Restaurant", property: "address")
   end
@@ -40,8 +40,8 @@ RSpec.describe Audit::SchemaValidator do
     errors, = validate(
       "@type" => "FAQPage",
       "mainEntity" => [
-        { "@type" => "Question", "name" => "¿Q1?", "acceptedAnswer" => { "@type" => "Answer", "text" => "A1" } },
-        { "@type" => "Question", "name" => "¿Q2?", "acceptedAnswer" => { "@type" => "Answer", "text" => " " } }
+        { "@type" => "Question", "name" => "Q1?", "acceptedAnswer" => { "@type" => "Answer", "text" => "A1" } },
+        { "@type" => "Question", "name" => "Q2?", "acceptedAnswer" => { "@type" => "Answer", "text" => " " } }
       ]
     )
 

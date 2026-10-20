@@ -1,9 +1,9 @@
-<% content_for :title, "Nuevo crawl · SEO Platform" %>
+<% content_for :title, t(".page_title") %>
 <% defaults = Crawling::CrawlConfig.defaults_for(@domain) %>
 <% err = ->(field) { message = @errors&.find { _1[:field] == field.to_s }&.dig(:detail); tag.span(message, class: "error", role: "alert") if message } %>
 <main>
   <p><%= link_to "← #{@project.name}", @project %></p>
-  <h1>Nuevo crawl</h1>
+  <h1><%= t(".heading") %></h1>
   <% general = @errors&.select { _1[:field].nil? } %>
   <% general&.each do |error| %>
     <p class="flash flash-alert" role="alert"><%= error[:detail] %></p>
@@ -11,86 +11,86 @@
 
   <%= form_with scope: :crawl, url: project_crawls_path(@project), class: "card stack" do |f| %>
     <label>
-      Dominio
-      <%= f.select :domain_id, @project.domains.sort_by(&:host).map { [ "#{_1.host}#{" (sin verificar)" unless _1.verified?}", _1.id ] },
+      <%= t(".domain") %>
+      <%= f.select :domain_id, @project.domains.sort_by(&:host).map { [ _1.verified? ? _1.host : t(".unverified_option", host: _1.host), _1.id ] },
                    { selected: @domain.id },
                    data: { controller: "domain-switch", action: "domain-switch#visit",
                            domain_switch_url_value: new_project_crawl_path(@project) } %>
     </label>
     <% unless @domain.verified? %>
-      <p class="notice">Dominio sin verificar: máximo 2 000 páginas a 2 peticiones/s. Verifícalo si es tuyo y necesitas rastrearlo completo.</p>
+      <% limits = Crawling::CrawlConfig::LIMITS[:unverified] %>
+      <p class="notice"><%= t(".unverified_notice", pages: number_with_delimiter(limits[:max_pages]), rps: format_score(limits[:max_rps])) %></p>
     <% end %>
 
     <label>
-      URL inicial
+      <%= t(".start_url") %>
       <%= f.text_field :start_url, value: @form[:start_url], placeholder: "https://#{@domain.host}/" %>
-      <span class="muted">Vacío = https://<%= @domain.host %>/</span>
+      <span class="muted"><%= t(".start_url_hint", url: "https://#{@domain.host}/") %></span>
       <%= err.call(:start_url) %>
     </label>
 
     <div class="grid">
       <label>
-        Alcance
-        <%= f.select :scope, [ [ "Dominio y subdominios", "domain" ], [ "Solo este host", "subdomain" ], [ "Solo esta carpeta", "subfolder" ] ],
-                     selected: @form[:scope] %>
+        <%= t(".scope") %>
+        <%= f.select :scope, %w[domain subdomain subfolder].map { [ t(".scopes.#{_1}"), _1 ] }, selected: @form[:scope] %>
         <%= err.call(:scope) %>
       </label>
       <label>
-        Dispositivo
-        <%= f.select :device, [ [ "Escritorio", "desktop" ], [ "Móvil", "mobile" ] ], selected: @form[:device] %>
+        <%= t(".device") %>
+        <%= f.select :device, %w[desktop mobile].map { [ t(".devices.#{_1}"), _1 ] }, selected: @form[:device] %>
       </label>
       <label>
-        Máximo de páginas
+        <%= t(".max_pages") %>
         <%= f.number_field :max_pages, value: @form[:max_pages], min: 1, placeholder: defaults[:max_pages].to_s %>
         <%= err.call(:max_pages) %>
       </label>
       <label>
-        Peticiones por segundo
+        <%= t(".requests_per_second") %>
         <%= f.number_field :requests_per_second, value: @form[:requests_per_second], step: 0.1, min: 0.2,
                            placeholder: defaults[:requests_per_second].to_s %>
         <%= err.call(:requests_per_second) %>
       </label>
       <label>
-        Profundidad máxima
+        <%= t(".max_depth") %>
         <%= f.number_field :max_depth, value: @form[:max_depth], min: 0, placeholder: "10" %>
         <%= err.call(:max_depth) %>
       </label>
     </div>
 
     <label>
-      Excluir rutas (regex, una por línea)
+      <%= t(".exclude_patterns") %>
       <%= f.text_area :exclude_patterns, value: Array(@form[:exclude_patterns]).join("\n"), rows: 3 %>
-      <span class="muted">Se aplican a ruta + query, p. ej. ^/wp-admin</span>
+      <span class="muted"><%= t(".patterns_hint") %></span>
       <%= err.call(:exclude_patterns) %>
     </label>
     <label>
-      Incluir solo rutas (regex, una por línea)
+      <%= t(".include_patterns") %>
       <%= f.text_area :include_patterns, value: Array(@form[:include_patterns]).join("\n"), rows: 2 %>
       <%= err.call(:include_patterns) %>
     </label>
 
-    <label class="check"><%= f.check_box :use_sitemaps, checked: @form[:use_sitemaps].to_s != "0" && @form[:use_sitemaps] != false %> Descubrir URLs desde los sitemaps</label>
-    <label class="check"><%= f.check_box :respect_nofollow, checked: @form[:respect_nofollow].to_s == "1" %> No seguir enlaces nofollow</label>
+    <label class="check"><%= f.check_box :use_sitemaps, checked: @form[:use_sitemaps].to_s != "0" && @form[:use_sitemaps] != false %> <%= t(".use_sitemaps") %></label>
+    <label class="check"><%= f.check_box :respect_nofollow, checked: @form[:respect_nofollow].to_s == "1" %> <%= t(".respect_nofollow") %></label>
     <div class="row">
-      <label class="check"><%= f.check_box :run_pagespeed, checked: @form[:run_pagespeed].to_s != "0" && @form[:run_pagespeed] != false %> Medir rendimiento con PageSpeed Insights (móvil)</label>
+      <label class="check"><%= f.check_box :run_pagespeed, checked: @form[:run_pagespeed].to_s != "0" && @form[:run_pagespeed] != false %> <%= t(".run_pagespeed") %></label>
       <label class="inline">
-        Páginas a medir
+        <%= t(".pagespeed_sample") %>
         <%= f.number_field :pagespeed_sample, value: @form[:pagespeed_sample], min: 1, max: Crawling::CrawlConfig::MAX_PAGESPEED_SAMPLE, placeholder: "10", class: "narrow-input" %>
       </label>
     </div>
     <%= err.call(:pagespeed_sample) %>
     <% unless Performance.api_key %>
-      <p class="muted">PageSpeed Insights necesita una API key: define <code>PAGESPEED_API_KEY</code> (ver docs/deploy.md). Sin ella, el rendimiento no se mide.</p>
+      <p class="muted"><%= t(".pagespeed_key_missing_html") %></p>
     <% end %>
     <% unless @domain.verified? %>
       <label class="check">
         <%= f.check_box :terms_accepted, checked: @form[:terms_accepted].to_s == "1" %>
-        He revisado que los términos de <%= @domain.host %> permiten este rastreo
+        <%= t(".terms", host: @domain.host) %>
       </label>
       <%= err.call(:terms_accepted) %>
     <% end %>
 
-    <p class="muted">Se respeta siempre robots.txt y su Crawl-delay. El bot se identifica como SEOPlatformBot.</p>
-    <div><%= f.submit "Iniciar crawl", data: { turbo_submits_with: "Iniciando…" } %></div>
+    <p class="muted"><%= t(".robots_note") %></p>
+    <div><%= f.submit t(".submit"), data: { turbo_submits_with: t(".submitting") } %></div>
   <% end %>
 </main>

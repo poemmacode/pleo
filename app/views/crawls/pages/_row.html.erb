@@ -6,6 +6,6 @@
   </td>
   <td><%= page.status_code || "—" %></td>
   <td><%= page.depth || "—" %></td>
-  <td><%= "sí" if page.in_sitemap %></td>
+  <td><%= t("common.yes") if page.in_sitemap %></td>
   <td><%= page.response_ms %></td>
 </tr>

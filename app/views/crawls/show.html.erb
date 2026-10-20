@@ -1,11 +1,12 @@
-<% content_for :title, "Crawl de #{@crawl.domain.host} · SEO Platform" %>
-<%= turbo_stream_from @crawl, :progress %>
+<% content_for :title, t(".page_title", host: @crawl.domain.host) %>
+<%# One stream per language: broadcasts are rendered once for each available locale. %>
+<%= turbo_stream_from @crawl, :progress, I18n.locale %>
 <main>
-  <p><%= link_to "← Proyecto", @crawl.project %></p>
-  <h1>Crawl de <%= @crawl.domain.host %></h1>
+  <p><%= link_to t(".back"), @crawl.project %></p>
+  <h1><%= t(".heading", host: @crawl.domain.host) %></h1>
   <%= render "crawls/progress", crawl: @crawl %>
   <%= render "crawls/audit", crawl: @crawl %>
   <%= turbo_frame_tag "pages", src: crawl_pages_path(@crawl), loading: :lazy do %>
-    <p class="muted">Cargando páginas…</p>
+    <p class="muted"><%= t(".loading_pages") %></p>
   <% end %>
 </main>

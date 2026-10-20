@@ -11,7 +11,7 @@ RSpec.describe Audit::Scoring do
     categories = Audit::Catalog.definitions.map { _1[:category] }.uniq
     expect(described_class::CATEGORY_WEIGHTS.keys).to match_array(categories)
     expect(described_class::CATEGORY_WEIGHTS.values.sum).to eq(100)
-    expect(described_class::CATEGORY_LABELS.keys).to match_array(categories)
+    categories.each { expect(I18n.exists?("audit.categories.#{_1}", :en) && I18n.exists?("audit.categories.#{_1}", :es)).to be(true), _1 }
   end
 
   it "scores a site without issues at 100" do
@@ -85,7 +85,7 @@ RSpec.describe Audit::Scoring do
 
   it "falls back to inlinks for pages outside the PageRank graph" do
     audit_page("/", internal_pagerank: 0.4, inlinks_count: 10)
-    broken = audit_page("/rota", status_code: 404, internal_pagerank: nil, inlinks_count: 5)
+    broken = audit_page("/broken", status_code: 404, internal_pagerank: nil, inlinks_count: 5)
     issue("http.4xx", page: broken)
     described_class.call(crawl)
 

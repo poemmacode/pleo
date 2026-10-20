@@ -1,39 +1,41 @@
 # SEO Platform
 
-Plataforma SEO personal y no comercial. El diseño completo está en [docs/](docs/README.md).
+A personal, non-commercial SEO platform. The full design is in [docs/](docs/README.md).
 
-Estado: **MVP completo (épicas 0, A–F)** con interfaz Hotwire. Incluye:
-- autenticación, proyectos y dominios con verificación (DNS TXT, archivo o meta tag);
-- cliente HTTP seguro (SafeHttp), robots.txt y límite de velocidad por host;
-- crawler con descubrimiento por sitemaps y enlaces, y progreso en vivo;
-- auditoría con 54 checks;
-- puntuación de salud global y por categoría, comparada con el crawl anterior, y problemas ordenados por prioridad;
-- rendimiento móvil con PageSpeed Insights (Lighthouse y Core Web Vitals de usuarios reales vía CrUX) sobre una muestra de páginas; necesita `PAGESPEED_API_KEY` (ver [docs/deploy.md](docs/deploy.md));
-- informes exportables: páginas y problemas en CSV, informe completo en Excel y resumen ejecutivo en PDF.
+Status: **MVP complete (epics 0, A–F)** with a Hotwire interface, in English by default and Spanish on request. It includes:
+- authentication, projects and domains with verification (DNS TXT, file or meta tag);
+- a safe HTTP client (SafeHttp), robots.txt and per-host rate limiting;
+- a crawler with sitemap and link discovery, and live progress;
+- an audit with 58 checks;
+- overall and per-category health scores, compared with the previous crawl, and issues sorted by priority;
+- mobile performance with PageSpeed Insights (Lighthouse, plus real-user Core Web Vitals from CrUX) on a sample of pages; needs `PAGESPEED_API_KEY` (see [docs/deploy.md](docs/deploy.md));
+- exportable reports: pages and issues as CSV, a full Excel report and a PDF executive summary;
+- an EN/ES language picker in the top bar, saved per user ([ADR 0010](docs/adr/0010-internationalization.md)).
 
-Lo siguiente según el roadmap ([docs/02-arquitectura.md](docs/02-arquitectura.md) §7): Search Console y GA4, keywords, rank tracking, competidores, GEO y backlinks.
+Next on the roadmap ([docs/02-architecture.md](docs/02-architecture.md) §7): Search Console and GA4, keywords, rank tracking, competitors, GEO and backlinks.
 
-## Estructura
+## Layout
 
-Es un monolito Rails 8 con Hotwire (Turbo + Stimulus, importmap, sin Node). Ver [ADR 0006](docs/adr/0006-monolito-hotwire.md).
+A Rails 8 monolith with Hotwire (Turbo + Stimulus, importmap, no Node). See [ADR 0006](docs/adr/0006-hotwire-monolith.md).
 
 ```
-app/modules/   dominio: SafeHttp, Crawling, Audit
-app/jobs/      Sidekiq: crawling (lanes, sitemaps) y audit
+app/modules/   domain: SafeHttp, Crawling, Audit, Performance, Reports
+app/jobs/      Sidekiq: crawling (lanes, sitemaps), audit and reports
 app/views/     HTML + Turbo Frames/Streams; app/javascript/controllers: Stimulus
-bin/dev        Postgres local + Rails + Sidekiq
-bin/db         clúster PostgreSQL propio del proyecto (puerto 5433, solo loopback)
-docs/          análisis, arquitectura, backlog y decisiones (docs/adr/)
+config/locales en/es interface texts; checks.{en,es}.yml for the audit checks
+bin/dev        local Postgres + Rails + Sidekiq
+bin/db         project-local PostgreSQL cluster (port 5433, loopback only)
+docs/          analysis, architecture, backlog and decisions (docs/adr/)
 ```
 
-## Requisitos
+## Requirements
 
 - Ruby 3.3.0 (`.tool-versions`).
-- PostgreSQL ≥ 15. `bin/db` usa Postgres.app si existe, o el `pg_ctl` del PATH. Alternativa: `docker compose up -d`.
-- Redis 7 en `127.0.0.1:6379`, para Sidekiq, Action Cable y el límite de velocidad.
-- Google Chrome, solo para los system specs.
+- PostgreSQL ≥ 15. `bin/db` uses Postgres.app if present, or the `pg_ctl` on the PATH. Alternative: `docker compose up -d`.
+- Redis 7 on `127.0.0.1:6379`, for Sidekiq, Action Cable and rate limiting.
+- Google Chrome, only for the system specs.
 
-## Puesta en marcha
+## Getting started
 
 ```bash
 bin/db start
@@ -43,25 +45,25 @@ bin/db start
 bundle install && bin/rails db:prepare
 ```
 
-Crea tu usuario. El registro público está deshabilitado; la contraseña se pide sin mostrarla y debe tener al menos 12 caracteres:
+Create your user. Public sign-up is disabled; the password is prompted without echo and must be at least 12 characters:
 
 ```bash
-bin/rails users:create EMAIL=tu@correo.com
+bin/rails users:create EMAIL=you@example.com
 ```
 
-Arranca Rails (puerto 3000) y Sidekiq:
+Start Rails (port 3000) and Sidekiq:
 
 ```bash
 bin/dev
 ```
 
-Abre http://127.0.0.1:3000.
+Open http://127.0.0.1:3000.
 
-## Despliegue
+## Deployment
 
-Render (plan gratuito) con el Blueprint [`render.yaml`](render.yaml): ver [docs/deploy.md](docs/deploy.md).
+Render (free plan) with the [`render.yaml`](render.yaml) Blueprint: see [docs/deploy.md](docs/deploy.md).
 
-## Pruebas
+## Tests
 
 ```bash
 bundle exec rspec
@@ -71,55 +73,57 @@ bundle exec rspec
 bin/rubocop && bin/brakeman --no-pager --except EOLRails && bin/importmap audit
 ```
 
-La CI (`.github/workflows/ci.yml`) ejecuta lo mismo, más `bundle-audit`, con Postgres, Redis y Chrome.
+CI (`.github/workflows/ci.yml`) runs the same, plus `bundle-audit`, with Postgres, Redis and Chrome.
 
-## Rutas
+## Routes
 
-| Ruta | Qué hace |
+| Route | What it does |
 |---|---|
-| `/session` | login y logout (límite de 10 intentos cada 3 min) |
-| `/bot` | página pública sobre el rastreador (enlazada desde su User-Agent) |
-| `/` y `/projects/:id` | proyectos, dominios (añadir, verificar, quitar) y crawls |
-| `/projects/:id/crawls/new?domain_id=` | nuevo crawl; valores por defecto y límites según si el dominio está verificado |
-| `/crawls/:id` | progreso en vivo, pausa, reanudación, cancelación, auditoría y tabla de páginas |
-| `/crawls/:id/pages/:page_id` | detalle: campos on-page, datos estructurados, problemas y enlaces |
-| `/crawls/:id/duplicates?type=title\|description\|content` | grupos de duplicados |
+| `/session` | sign in and out (limited to 10 attempts every 3 min) |
+| `/locale` | switch the interface language (EN/ES) |
+| `/bot` | public page about the crawler (linked from its User-Agent) |
+| `/` and `/projects/:id` | projects, domains (add, verify, remove) and crawls |
+| `/projects/:id/crawls/new?domain_id=` | new crawl; defaults and limits depend on whether the domain is verified |
+| `/crawls/:id` | live progress, pause, resume, cancel, audit, performance, reports and page table |
+| `/crawls/:id/pages/:page_id` | detail: on-page fields, structured data, issues and links |
+| `/crawls/:id/duplicates?type=title\|description\|content` | duplicate groups |
+| `/crawls/:id/reports` | generate and download CSV, Excel and PDF reports |
 
-## Seguridad ya implementada
+## Security already in place
 
-- Sesiones en servidor (revocables) con cookie firmada `HttpOnly; SameSite=Lax` (`Secure` en producción) y CSRF estándar de Rails.
-- Action Cable solo acepta conexiones con sesión, y los streams de Turbo van firmados.
-- Cada usuario solo ve sus proyectos, dominios y crawls (404 en los ajenos).
-- Los dominios se normalizan (punycode, minúsculas). Se rechazan:
-  - IPs en cualquier notación;
-  - `localhost` y nombres internos;
-  - URLs con puerto o con credenciales;
-  - hosts sin dominio público registrable.
+- Server-side (revocable) sessions with a signed `HttpOnly; SameSite=Lax` cookie (`Secure` in production) and standard Rails CSRF.
+- Action Cable only accepts authenticated connections, and Turbo streams are signed.
+- Each user only sees their own projects, domains and crawls (404 for anyone else's).
+- Domains are normalised (punycode, lowercase). Rejected:
+  - IPs in any notation;
+  - `localhost` and internal names;
+  - URLs with a port or credentials;
+  - hosts without a public registrable domain.
 
 ## SafeHttp (`app/modules/safe_http/`)
 
-Toda petición saliente hacia URLs de usuarios pasa por `SafeHttp::Client`:
+Every outbound request to user URLs goes through `SafeHttp::Client`:
 
-- Solo http/https y los puertos 80/443 (`SAFE_HTTP_ALLOWED_PORTS`); sin credenciales en la URL ni caracteres de control.
-- Resolución DNS propia (A + AAAA, sin `/etc/hosts`). Se rechaza la URL si **cualquier** IP resuelta está bloqueada: rangos privados, loopback, link-local/metadatos, CGNAT, reservados, o formas IPv6 que contienen una IPv4 bloqueada.
-- Conexión a la IP ya validada (anti DNS rebinding), con `Host`, SNI y certificado del hostname; se ignoran los proxies de entorno.
-- Redirecciones manuales (máximo 10), revalidando cada salto. Límites de tiempo y cuerpo de 5 MB como máximo, **una vez descomprimido**.
-- robots.txt según la RFC 9309, límite de velocidad por host en Redis y velocidad adaptativa.
+- Only http/https and ports 80/443 (`SAFE_HTTP_ALLOWED_PORTS`); no credentials in the URL and no control characters.
+- Own DNS resolution (A + AAAA, no `/etc/hosts`). The URL is rejected if **any** resolved IP is blocked: private ranges, loopback, link-local/metadata, CGNAT, reserved, or IPv6 forms that contain a blocked IPv4.
+- Connects to the already validated IP (anti DNS rebinding), with the hostname's `Host`, SNI and certificate; environment proxies are ignored.
+- Manual redirects (10 at most), re-validating each hop. Time limits, and a 5 MB body limit applied **after decompression**.
+- robots.txt per RFC 9309, per-host rate limiting in Redis and an adaptive rate.
 
 ## Crawler (`app/modules/crawling/`, `app/jobs/crawling/`)
 
-- Dominio verificado: hasta 50 000 páginas y 10 req/s. Sin verificar: hasta 2 000 páginas y 2 req/s (por defecto 500 y 1 req/s), confirmando que los términos del sitio lo permiten. Un crawl activo por host y dos por usuario.
-- `robots.txt` por host (no desactivable) y `Crawl-delay`. Si el servidor devuelve muchos 429/5xx, la velocidad se reduce y el crawl se pausa solo.
-- Detalles en [ADR 0004](docs/adr/0004-crawling.md).
+- Verified domain: up to 50,000 pages and 10 req/s. Unverified: up to 2,000 pages and 2 req/s (500 and 1 req/s by default), after confirming the site's terms allow it. One active crawl per host and two per user.
+- `robots.txt` per host (cannot be switched off) and `Crawl-delay`. If the server returns many 429/5xx, the rate drops and the crawl pauses itself.
+- Details in [ADR 0004](docs/adr/0004-crawling.md).
 
-## Auditoría (`app/modules/audit/`)
+## Audit (`app/modules/audit/`)
 
-- Se ejecuta sola al completarse el crawl. El catálogo de checks está en `Audit::Catalog`.
-- El vocabulario de schema.org está en `config/schema_org/` (CC BY-SA) y se regenera con `bin/rails schema_org:refresh`.
-- Para re-extraer un crawl con el extractor actual: `bin/rails audit:reextract CRAWL_ID=…`.
-- Detalles en [ADR 0005](docs/adr/0005-auditoria.md).
+- Runs automatically when the crawl completes. The check catalogue is in `Audit::Catalog`; the check texts are in `config/locales/checks.{en,es}.yml`.
+- The schema.org vocabulary is in `config/schema_org/` (CC BY-SA) and is regenerated with `bin/rails schema_org:refresh`.
+- To re-extract a crawl with the current extractor: `bin/rails audit:reextract CRAWL_ID=…`.
+- Details in [ADR 0005](docs/adr/0005-audit.md).
 
-## Limitaciones actuales
+## Current limitations
 
-- La verificación vía Search Console llegará con esa integración.
-- Ruby 3.3.0 tiene un bug del parser que obliga a fijar `connection_pool` 2.x e impide pasar a Rails 8.1. Además, `json` está fijado a 2.x por incompatibilidad con ActiveSupport 8.0.5. Ver [ADR 0002](docs/adr/0002-versiones-ruby-rails.md).
+- Verification through Search Console will come with that integration.
+- Ruby 3.3.0 has a parser bug that forces pinning `connection_pool` 2.x and blocks the move to Rails 8.1. `json` is also pinned to 2.x because of an incompatibility with ActiveSupport 8.0.5. See [ADR 0002](docs/adr/0002-ruby-rails-versions.md).

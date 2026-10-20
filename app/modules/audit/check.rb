@@ -1,6 +1,7 @@
 module Audit
   # Base class for audit checks. Each check declares its catalog entry with `define` and returns
   # findings: a page (or a URL without a page, or the whole site) plus details for the report.
+  # Titles and guidance live in config/locales/checks.*.yml under checks.<key>.
   class Check
     Finding = Data.define(:page_id, :url, :details)
     SEVERITIES = %w[error warning notice].freeze
@@ -8,13 +9,19 @@ module Audit
     class << self
       attr_reader :definition
 
-      def define(key:, category:, severity:, weight:, title:, description:, fix:)
-        raise ArgumentError, "severidad desconocida #{severity}" unless SEVERITIES.include?(severity)
+      def define(key:, category:, severity:, weight:)
+        raise ArgumentError, "unknown severity #{severity}" unless SEVERITIES.include?(severity)
 
-        @definition = { key:, category:, severity:, weight:, title:, description:, how_to_fix: fix }.freeze
+        @definition = { key:, category:, severity:, weight: }.freeze
       end
 
       def key = definition[:key]
+
+      def title = Audit::Check.text(key, :title)
+
+      def description = Audit::Check.text(key, :description)
+
+      def how_to_fix = Audit::Check.text(key, :fix)
 
       # Findings that describe the whole site (no sitemap, AI bots blocked…) count as full coverage
       # in the health score instead of a share of pages.
@@ -27,6 +34,9 @@ module Audit
 
       def sampled? = @sampled == true
     end
+
+    # Localized catalog text (title, description or fix) for a check key.
+    def self.text(key, field) = I18n.t("checks.#{key}.#{field}")
 
     attr_reader :context
 

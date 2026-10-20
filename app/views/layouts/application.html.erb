@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="<%= I18n.locale %>">
   <head>
-    <title><%= content_for(:title) || "SEO Platform" %></title>
+    <title><%= content_for(:title) || t("app.name") %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
@@ -11,12 +11,15 @@
   <body>
     <% if authenticated? %>
       <header class="topbar">
-        <%= link_to "SEO Platform", root_path, class: "brand" %>
+        <%= link_to t("app.name"), root_path, class: "brand" %>
         <span class="row">
+          <%= render "shared/locale_switcher" %>
           <span class="muted"><%= Current.user.email %></span>
-          <%= button_to "Salir", session_path, method: :delete, class: "secondary" %>
+          <%= button_to t(".sign_out"), session_path, method: :delete, class: "secondary" %>
         </span>
       </header>
+    <% else %>
+      <header class="topbar plain-topbar"><span></span><%= render "shared/locale_switcher" %></header>
     <% end %>
     <div class="flash-area"><%= render "shared/flash" %></div>
     <%= yield %>

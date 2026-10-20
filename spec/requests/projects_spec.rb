@@ -28,14 +28,14 @@ RSpec.describe "Projects" do
     get project_path(project)
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("example.com · 20 oct 09:05", "Completado · 12 páginas")
+    expect(response.body).to include("example.com · 20 Oct 09:05", "Completed · 12 pages")
   end
 
   it "re-renders the list with the validation error" do
     post projects_path, params: { project: { name: "" } }
 
     expect(response).to have_http_status(:unprocessable_entity)
-    expect(response.body).to include("Nombre no puede estar vacío")
+    expect(response.body).to include("Name can&#39;t be blank")
   end
 
   it "hides other users' projects" do

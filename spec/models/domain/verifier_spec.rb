@@ -88,7 +88,7 @@ RSpec.describe Domain::Verifier do
     end
 
     it "fails when the file has the wrong content" do
-      server.route(described_class.file_path(domain), [ 200, {}, "otra cosa" ])
+      server.route(described_class.file_path(domain), [ 200, {}, "something else" ])
 
       expect(verifier.call("html_file")).to have_attributes(success: false, code: "verification_failed")
     end

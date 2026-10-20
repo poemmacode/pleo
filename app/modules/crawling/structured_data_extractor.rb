@@ -27,14 +27,14 @@ module Crawling
       doc.css("script[type]").select { _1["type"].strip.casecmp?("application/ld+json") }.flat_map do |script|
         source = script.text.strip.sub(/\A<!--/, "").sub(/-->\z/, "").sub(/\A<!\[CDATA\[/, "").sub(/\]\]>\z/, "")
         if source.bytesize > MAX_JSON_BYTES
-          next [ item("json-ld", nil, valid: false, error: "bloque JSON-LD de más de #{MAX_JSON_BYTES} bytes") ]
+          next [ item("json-ld", nil, valid: false, error: "JSON-LD block larger than #{MAX_JSON_BYTES} bytes") ]
         end
 
         parsed = JSON.parse(source)
         nodes = (parsed.is_a?(Array) ? parsed : [ parsed ]).flat_map { _1.is_a?(Hash) && _1["@graph"].is_a?(Array) ? _1["@graph"] : [ _1 ] }
         nodes.select { _1.is_a?(Hash) }.map { item("json-ld", _1) }
       rescue JSON::ParserError => e
-        [ item("json-ld", nil, valid: false, error: "JSON inválido: #{e.message.first(200)}") ]
+        [ item("json-ld", nil, valid: false, error: "invalid JSON: #{e.message.first(200)}") ]
       end
     end
 

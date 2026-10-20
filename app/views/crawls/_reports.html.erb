@@ -1,9 +1,9 @@
 <%# Export section: rendered in the audit section and replaced by Reports::Broadcaster. %>
 <div id="<%= dom_id(crawl, :reports) %>" class="stack">
-  <h2>Exportar</h2>
+  <h2><%= t(".heading") %></h2>
   <div class="row">
-    <% Report::KINDS.each do |kind, info| %>
-      <%= button_to info[:label], crawl_reports_path(crawl), params: { kind: }, class: "secondary" %>
+    <% Report::KINDS.each_key do |kind| %>
+      <%= button_to t("reports.kinds.#{kind}"), crawl_reports_path(crawl), params: { kind: }, class: "secondary" %>
     <% end %>
   </div>
   <% reports = crawl.reports.without_data.order(:kind) %>
@@ -11,14 +11,15 @@
     <ul class="plain">
       <% reports.each do |report| %>
         <li>
+          <% label = t("reports.kinds.#{report.kind}") %>
           <% case report.status %>
           <% when "done" %>
-            <%= link_to report.label, crawl_report_path(crawl, report), data: { turbo: false } %>
+            <%= link_to label, crawl_report_path(crawl, report), data: { turbo: false } %>
             <span class="muted">· <%= number_to_human_size(report.byte_size) %> · <%= l(report.generated_at, format: :short) %></span>
           <% when "failed" %>
-            <%= report.label %> <span class="error">— falló: <%= report.error %></span>
+            <%= label %> <span class="error">— <%= t(".failed", error: report.error) %></span>
           <% else %>
-            <%= report.label %> <span class="muted">— generando…</span>
+            <%= label %> <span class="muted">— <%= t(".generating") %></span>
           <% end %>
         </li>
       <% end %>

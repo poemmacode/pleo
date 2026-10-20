@@ -1,31 +1,31 @@
-<% content_for :title, "#{@page.url} · SEO Platform" %>
+<% content_for :title, t(".page_title", url: @page.url) %>
 <main>
-  <p><%= link_to "← Crawl", @crawl %></p>
+  <p><%= link_to t(".back"), @crawl %></p>
   <h1 class="url"><%= @page.url %></h1>
   <section class="card">
     <dl class="dns">
-      <dt>Estado</dt><dd><%= @page.status_code || @page.fetch_error %></dd>
-      <dt>Indexable</dt><dd><%= @page.indexable ? "sí" : "no (#{@page.indexability_reason})" %></dd>
+      <dt><%= t(".status") %></dt><dd><%= @page.status_code || @page.fetch_error %></dd>
+      <dt><%= t(".indexable") %></dt><dd><%= @page.indexable ? t("common.yes") : t(".not_indexable", reason: @page.indexability_reason) %></dd>
       <dt>Title</dt><dd><%= @page.title || "—" %></dd>
       <dt>Description</dt><dd><%= @page.meta_description || "—" %></dd>
       <dt>Canonical</dt><dd><%= @page.canonical || @page.canonical_hrefs.join(", ").presence || "—" %></dd>
       <dt>Robots</dt><dd><%= [ @page.meta_robots, @page.x_robots_tag ].compact_blank.join(" · ").presence || "—" %></dd>
-      <dt>Idioma</dt><dd><%= @page.lang || "—" %></dd>
-      <dt>Palabras</dt><dd><%= @page.word_count || "—" %></dd>
-      <dt>Profundidad</dt><dd><%= @page.depth || "—" %></dd>
-      <dt>Enlaces entrantes</dt><dd><%= @page.inlinks_count %></dd>
-      <dt>Imágenes sin alt</dt><dd><%= @page.images_missing_alt.to_i %> de <%= @page.images_count.to_i %></dd>
+      <dt><%= t(".language") %></dt><dd><%= @page.lang || "—" %></dd>
+      <dt><%= t(".words") %></dt><dd><%= @page.word_count || "—" %></dd>
+      <dt><%= t(".depth") %></dt><dd><%= @page.depth || "—" %></dd>
+      <dt><%= t(".inlinks") %></dt><dd><%= @page.inlinks_count %></dd>
+      <dt><%= t(".images_missing_alt") %></dt><dd><%= t(".images_count", missing: @page.images_missing_alt.to_i, total: @page.images_count.to_i) %></dd>
     </dl>
   </section>
 
   <% @page.performance_results.each do |result| %>
     <section class="card stack">
-      <h2>Rendimiento móvil (PageSpeed Insights)</h2>
+      <h2><%= t("crawls.performance.heading") %></h2>
       <% if result.error %>
         <p class="error"><%= result.error %></p>
       <% else %>
         <dl class="stats">
-          <div><dt>Puntuación</dt><dd class="<%= psi_score_class(result.performance_score) %>"><%= result.performance_score %></dd></div>
+          <div><dt><%= t("crawls.performance.score") %></dt><dd class="<%= psi_score_class(result.performance_score) %>"><%= result.performance_score %></dd></div>
           <div><dt>LCP</dt><dd><%= format_ms(result.lcp_ms) %></dd></div>
           <div><dt>CLS</dt><dd><%= format_cls(result.cls) %></dd></div>
           <div><dt>TBT</dt><dd><%= format_ms(result.tbt_ms) %></dd></div>
@@ -33,12 +33,12 @@
           <div><dt>Speed Index</dt><dd><%= format_ms(result.speed_index_ms) %></dd></div>
           <div><dt>TTFB</dt><dd><%= format_ms(result.ttfb_ms) %></dd></div>
         </dl>
-        <p class="muted">Usuarios reales (CrUX, p75): <%= field_summary(result) %></p>
+        <p class="muted"><%= t(".field_data", summary: field_summary(result)) %></p>
         <% if result.opportunities.any? %>
-          <h3>Oportunidades</h3>
+          <h3><%= t(".opportunities") %></h3>
           <ul class="plain">
             <% result.opportunities.each do |opportunity| %>
-              <li><%= opportunity["title"] %> <span class="muted">— ahorro estimado <%= format_ms(opportunity["savings_ms"]) %></span></li>
+              <li><%= opportunity["title"] %> <span class="muted">— <%= t(".savings", savings: format_ms(opportunity["savings_ms"])) %></span></li>
             <% end %>
           </ul>
         <% end %>
@@ -47,13 +47,13 @@
   <% end %>
 
   <section class="card stack">
-    <h2>Problemas</h2>
+    <h2><%= t(".issues") %></h2>
     <% if @issues.empty? %>
-      <p class="muted">Ninguno.</p>
+      <p class="muted"><%= t(".no_issues") %></p>
     <% else %>
       <ul class="plain">
-        <% @issues.each do |key, severity, title, details| %>
-          <li><%= severity_badge(severity) %> <%= title %><% if details.present? %><span class="muted"> — <%= format_details(details) %></span><% end %></li>
+        <% @issues.each do |key, severity, details| %>
+          <li><%= severity_badge(severity) %> <%= check_title(key) %><% if details.present? %><span class="muted"> — <%= format_details(details) %></span><% end %></li>
         <% end %>
       </ul>
     <% end %>
@@ -61,7 +61,7 @@
 
   <div class="grid">
     <section class="card">
-      <h2>Encabezados</h2>
+      <h2><%= t(".headings") %></h2>
       <ul class="plain headings">
         <% @page.headings.each do |heading| %>
           <li style="padding-left: <%= (heading["level"].to_i - 1) * 12 %>px"><code>H<%= heading["level"] %></code> <%= heading["text"] %></li>
@@ -69,13 +69,13 @@
       </ul>
     </section>
     <section class="card">
-      <h2>Datos estructurados</h2>
-      <% if @page.structured_data.empty? %><p class="muted">Sin marcado.</p><% end %>
+      <h2><%= t(".structured_data") %></h2>
+      <% if @page.structured_data.empty? %><p class="muted"><%= t(".no_markup") %></p><% end %>
       <ul class="plain">
         <% @page.structured_data.each do |item| %>
           <li>
-            <code><%= item.syntax %></code> <%= item.types.join(", ").presence || "(sin tipo)" %>
-            <% unless item.valid_syntax %><span class="error">sintaxis inválida</span><% end %>
+            <code><%= item.syntax %></code> <%= item.types.join(", ").presence || t(".no_type") %>
+            <% unless item.valid_syntax %><span class="error"><%= t(".invalid_syntax") %></span><% end %>
             <% item.validation_errors.each do |error| %><div class="error"><%= error.is_a?(Hash) ? error.values.join(" · ") : error %></div><% end %>
             <% item.validation_warnings.first(5).each do |warning| %><div class="muted"><%= warning.values.join(" · ") %></div><% end %>
           </li>
@@ -85,18 +85,18 @@
   </div>
 
   <section class="card stack">
-    <h2>Enlaces salientes (<%= @outlinks.size %>)</h2>
+    <h2><%= t(".outlinks", count: @outlinks.size) %></h2>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>URL</th><th>Anchor</th><th>Tipo</th></tr></thead>
+        <thead><tr><th>URL</th><th>Anchor</th><th><%= t(".link_type") %></th></tr></thead>
         <tbody>
           <% @outlinks.each do |link| %>
-            <tr><td class="url"><%= link.to_url %></td><td><%= link.anchor %></td><td><%= link.internal ? "interno" : "externo" %><%= " (#{link.rel.join(" ")})" if link.rel.any? %></td></tr>
+            <tr><td class="url"><%= link.to_url %></td><td><%= link.anchor %></td><td><%= link.internal ? t(".internal") : t(".external") %><%= " (#{link.rel.join(" ")})" if link.rel.any? %></td></tr>
           <% end %>
         </tbody>
       </table>
     </div>
-    <h2>Enlaces entrantes (<%= @inlinks.size %>)</h2>
+    <h2><%= t(".inlinks_list", count: @inlinks.size) %></h2>
     <ul class="plain">
       <% @inlinks.each do |url, anchor| %><li><code><%= url %></code><%= " — #{anchor}" if anchor.present? %></li><% end %>
     </ul>

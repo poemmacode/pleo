@@ -21,14 +21,14 @@ RSpec.describe "Audit checks" do
       { hreflang: [ { "lang" => "es-MX", "href" => "x" }, { "lang" => "x-default", "href" => "y" }, { "lang" => "zh-Hant-TW", "href" => "z" } ] } ],
     [ C::Metadata::TitleMissing, { title: nil }, {} ],
     [ C::Metadata::TitleTooLong, { title: "T" * 61 }, { title: "T" * 60 } ],
-    [ C::Metadata::TitleTooShort, { title: "Inicio" }, { title: "T" * 15 } ],
+    [ C::Metadata::TitleTooShort, { title: "Home" }, { title: "T" * 15 } ],
     [ C::Metadata::TitleMultiple, { title_count: 2 }, { title_count: 1 } ],
     [ C::Metadata::DescriptionMissing, { meta_description: nil }, { meta_description: nil, indexable: false } ],
     [ C::Metadata::DescriptionLength, { meta_description: "D" * 161 }, { meta_description: "D" * 70 } ],
     [ C::Content::H1Missing, { h1: [] }, {} ],
     [ C::Content::H1Multiple, { h1: %w[a b] }, {} ],
     [ C::Content::HeadingsSkipped, { headings: [ { "level" => 1 }, { "level" => 3 } ] }, { headings: [ { "level" => 1 }, { "level" => 2 }, { "level" => 3 }, { "level" => 2 } ] } ],
-    [ C::Content::H1EqualsTitle, { title: "Guía de SEO técnico", h1: [ "guía de seo técnico" ] }, {} ],
+    [ C::Content::H1EqualsTitle, { title: "Technical SEO guide", h1: [ "technical seo guide" ] }, {} ],
     [ C::Content::Thin, { word_count: 150 }, { word_count: 150, indexable: false } ],
     [ C::Content::ImagesMissingAlt, { images_missing_alt: 2 }, {} ],
     [ C::Links::TooMany, { links_count: 301 }, { links_count: 300 } ],
@@ -69,10 +69,9 @@ RSpec.describe "Audit checks" do
     expect(Audit::Catalog::CHECKS - covered).to be_empty
   end
 
-  it "has unique keys and Spanish texts for every definition" do
+  it "has unique keys (texts are checked in spec/i18n_spec.rb)" do
     definitions = Audit::Catalog.definitions
     expect(definitions.map { _1[:key] }.uniq.size).to eq(definitions.size)
-    expect(definitions).to all(include(:title, :description, :how_to_fix))
   end
 
   describe "redirects" do
@@ -122,7 +121,7 @@ RSpec.describe "Audit checks" do
 
   describe "duplicates" do
     it "groups indexable pages with the same title or description" do
-      same = Digest::SHA256.digest("igual")
+      same = Digest::SHA256.digest("same")
       audit_page("/a", title_hash: same, description_hash: same)
       audit_page("/b", title_hash: same)
       audit_page("/c", title_hash: same, indexable: false)
@@ -147,19 +146,19 @@ RSpec.describe "Audit checks" do
   describe "link checks" do
     it "flags broken, nofollow, redirected and http internal links per source page" do
       home = audit_page("/")
-      audit_page("/rota", status_code: 404)
-      audit_page("/vieja", status_code: 301, redirect_url: "https://example.com/")
+      audit_page("/broken", status_code: 404)
+      audit_page("/old", status_code: 301, redirect_url: "https://example.com/")
       audit_page("/ok")
-      audit_link(home, "https://example.com/rota")
-      audit_link(home, "https://example.com/vieja")
+      audit_link(home, "https://example.com/broken")
+      audit_link(home, "https://example.com/old")
       audit_link(home, "https://example.com/ok", rel: [ "nofollow" ])
       audit_link(home, "http://example.com/ok")
       audit_link(home, "https://example.com/ok")
 
       broken = findings_for(C::Links::InternalBroken)
       expect(broken.map(&:url)).to eq([ "https://example.com/" ])
-      expect(broken.first.details).to eq(count: 1, targets: [ "https://example.com/rota" ])
-      expect(findings_for(C::Links::ToRedirect).first.details[:targets]).to eq([ "https://example.com/vieja" ])
+      expect(broken.first.details).to eq(count: 1, targets: [ "https://example.com/broken" ])
+      expect(findings_for(C::Links::ToRedirect).first.details[:targets]).to eq([ "https://example.com/old" ])
       expect(findings_for(C::Links::InternalNofollow).first.details[:targets]).to eq([ "https://example.com/ok" ])
       expect(findings_for(C::Https::HttpLinks).first.details[:targets]).to eq([ "http://example.com/ok" ])
     end
@@ -177,12 +176,12 @@ RSpec.describe "Audit checks" do
 
     it "lists linked URLs blocked by robots.txt" do
       home = audit_page("/")
-      CrawlUrl.create!(crawl: audit_crawl, url: "https://example.com/privado", url_hash: CrawlUrl.hash_url("https://example.com/privado"),
+      CrawlUrl.create!(crawl: audit_crawl, url: "https://example.com/private", url_hash: CrawlUrl.hash_url("https://example.com/private"),
                        source: "link", state: "skipped", skip_reason: "robots")
-      audit_link(home, "https://example.com/privado")
+      audit_link(home, "https://example.com/private")
 
       findings = findings_for(C::Crawlability::RobotsBlockedLinked)
-      expect(findings.map { [ _1.page_id, _1.url, _1.details ] }).to eq([ [ nil, "https://example.com/privado", { linked_from_pages: 1 } ] ])
+      expect(findings.map { [ _1.page_id, _1.url, _1.details ] }).to eq([ [ nil, "https://example.com/private", { linked_from_pages: 1 } ] ])
     end
   end
 
@@ -192,16 +191,16 @@ RSpec.describe "Audit checks" do
     end
 
     it "reports invalid JSON, unknown types, missing properties and pages without markup" do
-      add_schema(audit_page("/roto"), valid: false, errors: [ "JSON inválido" ])
-      add_schema(audit_page("/errata"), errors: [ { "code" => "unknown_type", "type" => "Prodcut" } ])
-      add_schema(audit_page("/incompleto"), errors: [ { "code" => "missing_required", "type" => "Product", "property" => "name" } ])
-      add_schema(audit_page("/bien"))
-      audit_page("/sin-marcado")
+      add_schema(audit_page("/broken-json"), valid: false, errors: [ "invalid JSON" ])
+      add_schema(audit_page("/typo"), errors: [ { "code" => "unknown_type", "type" => "Prodcut" } ])
+      add_schema(audit_page("/incomplete"), errors: [ { "code" => "missing_required", "type" => "Product", "property" => "name" } ])
+      add_schema(audit_page("/fine"))
+      audit_page("/no-markup")
 
-      expect(flagged_urls(C::StructuredData::InvalidJson)).to eq([ "https://example.com/roto" ])
+      expect(flagged_urls(C::StructuredData::InvalidJson)).to eq([ "https://example.com/broken-json" ])
       expect(findings_for(C::StructuredData::UnknownType).first.details).to eq(types: [ "Prodcut" ])
       expect(findings_for(C::StructuredData::MissingRequired).first.details).to eq(missing: [ "Product · name" ])
-      expect(flagged_urls(C::StructuredData::None)).to eq([ "https://example.com/sin-marcado" ])
+      expect(flagged_urls(C::StructuredData::None)).to eq([ "https://example.com/no-markup" ])
     end
   end
 

@@ -10,7 +10,8 @@ class Reports::GenerateReportJob < ApplicationJob
     report = Report.find_by(id: report_id)
     return unless report
 
-    data = GENERATORS.fetch(report.kind).call.new(report.crawl).render
+    # Rendered in the language of the user who requested it.
+    data = I18n.with_locale(report.locale) { GENERATORS.fetch(report.kind).call.new(report.crawl).render }
     report.update!(status: "done", data:, byte_size: data.bytesize, filename: report.default_filename,
                    content_type: Report::KINDS.fetch(report.kind)[:content_type], generated_at: Time.current, error: nil)
   rescue StandardError => e

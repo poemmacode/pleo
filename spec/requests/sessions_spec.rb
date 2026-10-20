@@ -19,7 +19,7 @@ RSpec.describe "Sessions" do
     post session_path, params: { email: "ana@example.com", password: "wrong password!" }
 
     expect(response).to have_http_status(:unprocessable_entity)
-    expect(response.body).to include("Correo o contraseña incorrectos")
+    expect(response.body).to include("Wrong email or password")
   end
 
   it "redirects anonymous visitors to the login page" do
@@ -41,6 +41,6 @@ RSpec.describe "Sessions" do
     post session_path, params: { email: "ana@example.com", password: RequestHelpers::PASSWORD }
 
     expect(response).to redirect_to(new_session_path)
-    expect(flash[:alert]).to include("Demasiados intentos")
+    expect(flash[:alert]).to include("Too many attempts")
   end
 end

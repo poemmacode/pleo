@@ -20,19 +20,13 @@ module Audit
       end
 
       class InternalBroken < LinkQueryCheck
-        define key: "links.internal_broken", category: "links", severity: "error", weight: 9,
-          title: "Enlaces internos rotos",
-          description: "La página enlaza a URLs internas que devuelven error o no responden.",
-          fix: "Actualiza los enlaces a la URL correcta o elimínalos."
+        define key: "links.internal_broken", category: "links", severity: "error", weight: 9
 
         def query = grouped("links.internal AND (target.status_code >= 400 OR target.fetch_error IS NOT NULL)", "JOIN pages target ON target.id = links.to_page_id")
       end
 
       class ExternalBroken < LinkQueryCheck
-        define key: "links.external_broken", category: "links", severity: "warning", weight: 3,
-          title: "Enlaces externos rotos",
-          description: "Enlaces a otros sitios que devuelven error o no responden; empeoran la experiencia y la confianza.",
-          fix: "Sustituye el enlace por uno vigente (o una copia archivada) o elimínalo."
+        define key: "links.external_broken", category: "links", severity: "warning", weight: 3
 
         def query
           grouped(<<~SQL, "JOIN external_link_checks c ON c.crawl_id = links.crawl_id AND c.url_hash = links.to_url_hash")
@@ -45,29 +39,20 @@ module Audit
       end
 
       class InternalNofollow < LinkQueryCheck
-        define key: "links.internal_nofollow", category: "links", severity: "warning", weight: 3,
-          title: "Enlaces internos con nofollow",
-          description: "nofollow en enlaces internos impide que la autoridad fluya hacia tus propias páginas.",
-          fix: "Quita rel=\"nofollow\" de los enlaces internos (salvo casos como login o carrito)."
+        define key: "links.internal_nofollow", category: "links", severity: "warning", weight: 3
 
         def query = grouped("links.internal AND 'nofollow' = ANY(links.rel)")
       end
 
       class ToRedirect < LinkQueryCheck
-        define key: "links.to_redirect", category: "links", severity: "notice", weight: 2,
-          title: "Enlaces internos a redirecciones",
-          description: "Enlazar a una URL que redirige añade un salto innecesario.",
-          fix: "Enlaza directamente a la URL de destino."
+        define key: "links.to_redirect", category: "links", severity: "notice", weight: 2
 
         def query = grouped("links.internal AND target.status_code BETWEEN 300 AND 399", "JOIN pages target ON target.id = links.to_page_id")
       end
 
       class TooMany < PageCheck
         LIMIT = 300
-        define key: "links.too_many", category: "links", severity: "notice", weight: 1,
-          title: "Demasiados enlaces en la página",
-          description: "Más de 300 enlaces diluyen la autoridad y dificultan entender qué es importante.",
-          fix: "Reduce menús y bloques de enlaces repetidos; prioriza los relevantes."
+        define key: "links.too_many", category: "links", severity: "notice", weight: 1
 
         def evaluate(page) = page.links_count.to_i > LIMIT && { links: page.links_count }
       end

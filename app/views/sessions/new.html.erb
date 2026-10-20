@@ -1,15 +1,15 @@
-<% content_for :title, "Entrar · SEO Platform" %>
+<% content_for :title, t(".page_title") %>
 <main class="narrow">
-  <h1>SEO Platform</h1>
+  <h1><%= t("app.name") %></h1>
   <%= form_with url: session_path, class: "card stack" do |f| %>
     <%= f.label :email do %>
-      Correo
+      <%= t(".email") %>
       <%= f.email_field :email, value: params[:email], required: true, autocomplete: "username", autofocus: true %>
     <% end %>
     <%= f.label :password do %>
-      Contraseña
+      <%= t(".password") %>
       <%= f.password_field :password, required: true, autocomplete: "current-password" %>
     <% end %>
-    <div><%= f.submit "Entrar", data: { turbo_submits_with: "Entrando…" } %></div>
+    <div><%= f.submit t(".submit"), data: { turbo_submits_with: t(".submitting") } %></div>
   <% end %>
 </main>

@@ -1,15 +1,15 @@
-<% content_for :title, "#{@project.name} · SEO Platform" %>
+<% content_for :title, t(".page_title", name: @project.name) %>
 <main>
-  <p><%= link_to "← Proyectos", root_path %></p>
+  <p><%= link_to t(".back"), root_path %></p>
   <h1><%= @project.name %></h1>
 
-  <h2>Dominios</h2>
+  <h2><%= t(".domains") %></h2>
   <%= form_with model: [ @project, @domain ], class: "inline-form" do |f| %>
     <%= f.label :host do %>
-      Añadir dominio
-      <%= f.text_field :host, value: @domain.host_input, placeholder: "ejemplo.com", "aria-invalid": @domain.errors[:host].any? %>
+      <%= t(".add_domain") %>
+      <%= f.text_field :host, value: @domain.host_input, placeholder: t(".host_placeholder"), "aria-invalid": @domain.errors[:host].any? %>
     <% end %>
-    <%= f.submit "Añadir" %>
+    <%= f.submit t(".add") %>
   <% end %>
   <%= field_error(@domain, :host) %>
 
@@ -18,24 +18,24 @@
   </ul>
 
   <% if @project.domains.any? %>
-    <h2>Crawls</h2>
+    <h2><%= t(".crawls") %></h2>
     <% crawls = @project.crawls.includes(:domain).order(created_at: :desc).limit(20) %>
     <% if crawls.empty? %>
-      <p class="muted">Todavía no hay crawls.</p>
+      <p class="muted"><%= t(".no_crawls") %></p>
     <% end %>
     <ul class="list">
       <% crawls.each do |crawl| %>
         <li class="card">
           <%= link_to "#{crawl.domain.host} · #{l(crawl.created_at, format: :short)}", crawl %>
           <span class="muted">
-            <%= crawl_status_label(crawl.status) %> · <%= pluralize(crawl.pages_crawled, "página") %>
-            <% if crawl.health_score %> · salud <strong class="<%= health_class(crawl.health_score) %>"><%= format_score(crawl.health_score) %></strong><% end %>
+            <%= crawl_status_label(crawl.status) %> · <%= t(".pages", count: crawl.pages_crawled) %>
+            <% if crawl.health_score %> · <%= t(".health") %> <strong class="<%= health_class(crawl.health_score) %>"><%= format_score(crawl.health_score) %></strong><% end %>
           </span>
         </li>
       <% end %>
     </ul>
   <% end %>
 
-  <p><%= button_to "Eliminar proyecto", @project, method: :delete, class: "danger",
-                   form: { data: { turbo_confirm: "¿Eliminar este proyecto, sus dominios y sus crawls?" } } %></p>
+  <p><%= button_to t(".delete"), @project, method: :delete, class: "danger",
+                   form: { data: { turbo_confirm: t(".delete_confirm") } } %></p>
 </main>

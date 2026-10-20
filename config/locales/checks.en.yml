@@ -1,0 +1,254 @@
+# Audit check texts, keyed by check (Audit::Catalog). Written from scratch; see ADR 0005.
+en:
+  checks:
+    http:
+      4xx:
+        title: Pages returning 4xx errors
+        description: The URL responds with a client error (for example 404). Users and search engines land on a page that does not exist.
+        fix: Restore the page, redirect it (301) to the equivalent URL, or remove the links and sitemap entries that point to it.
+      5xx:
+        title: Pages returning 5xx errors
+        description: The server failed to serve the page. If it keeps happening, search engines crawl less and may drop it from the index.
+        fix: Check the server logs for that URL and fix the error; also check the server's capacity.
+      timeout:
+        title: Pages that did not respond
+        description: No HTTP response was received (timeout or connection refused).
+        fix: Make sure the page loads and that the server does not block or heavily throttle crawlers.
+    redirect:
+      chain:
+        title: Redirect chains
+        description: The URL redirects to another URL that redirects again. Each hop adds latency and wastes crawl budget.
+        fix: Make the first URL redirect straight to the final destination and update internal links.
+      loop:
+        title: Redirect loops
+        description: The redirects come back to a URL already visited; the page never loads.
+        fix: Review the redirect rules (server, CMS, CDN) so they end at a URL that returns 200.
+      temporary:
+        title: Linked temporary redirects
+        description: Internal links lead to a 302/307 redirect. Search engines may keep indexing the original URL.
+        fix: If the change is permanent use 301/308, and link straight to the final URL.
+    robots:
+      blocked_internal_linked:
+        title: Linked URLs blocked by robots.txt
+        description: Internal links point to URLs that robots.txt forbids crawling. They can show up in results without a description.
+        fix: If the URL should rank, allow it in robots.txt; otherwise remove or change the internal links.
+      noindex:
+        title: Pages with noindex
+        description: The page asks not to be indexed (meta robots or X-Robots-Tag). Make sure this is intended.
+        fix: Remove noindex if the page should appear in search results.
+    sitemap:
+      non_200:
+        title: Sitemap URLs that do not return 200
+        description: A sitemap should only list canonical URLs that return 200; anything else confuses search engines.
+        fix: Remove redirected or broken URLs from the sitemap, or replace them with their final destination.
+      noindex:
+        title: Non-indexable sitemap URLs
+        description: 'The sitemap lists pages with noindex or a canonical pointing elsewhere: contradictory signals.'
+        fix: Remove those URLs from the sitemap or make them indexable.
+      missing:
+        title: No sitemap found
+        description: robots.txt declares no sitemap and /sitemap.xml does not exist. A sitemap helps discover new or poorly linked pages.
+        fix: 'Publish an XML sitemap with the canonical URLs and declare it in robots.txt (Sitemap: line).'
+    page:
+      orphan:
+        title: Orphan pages
+        description: They are in the sitemap but no crawled page links to them, so they receive little internal authority.
+        fix: Link to them from relevant pages (menus, categories, related articles) or remove them if they are not needed.
+      deep:
+        title: Pages more than 4 clicks from the home page
+        description: The deeper a page is, the less it is crawled and the less authority it receives.
+        fix: 'Shorten the path: links from categories or the home page, flatter pagination or related links.'
+      too_large:
+        title: HTML too heavy
+        description: More than 2 MB of HTML slows down loading and crawling.
+        fix: 'Reduce the HTML: remove embedded data, unnecessary inline CSS/JS or huge listings.'
+    canonical:
+      missing:
+        title: Missing canonical tag
+        description: Without a canonical, search engines pick the main URL among variants themselves (parameters, letter case, trailing slash).
+        fix: Add <link rel="canonical" href="absolute URL"> pointing to the page itself or to its main version.
+      to_non200:
+        title: Canonical pointing to a URL that does not return 200
+        description: The canonical points to a redirect or an error; search engines will probably ignore it.
+        fix: Point the canonical to the final URL that returns 200.
+      to_noindex:
+        title: Canonical pointing to a noindex page
+        description: 'Contradictory signals: this page defers to another page that asks not to be indexed.'
+        fix: Choose a single indexable main URL and point the canonical to it.
+      multiple:
+        title: Conflicting canonicals
+        description: The page declares different canonicals (in the HTML or in the Link header). Search engines may ignore all of them.
+        fix: Keep a single canonical declaration.
+      relative_or_invalid:
+        title: Relative or malformed canonical
+        description: A relative or invalid canonical is easily misread (for example on versions with and without www).
+        fix: Always use an absolute URL with protocol and host.
+      chain:
+        title: Chained canonical
+        description: The canonical points to a page that declares yet another canonical.
+        fix: Point the canonical straight to the final main URL.
+    hreflang:
+      no_return:
+        title: hreflang without a return link
+        description: The page declares an alternate version that does not declare it back; search engines ignore that pair.
+        fix: Add the reciprocal hreflang back to this page on every alternate version.
+      invalid_code:
+        title: Invalid hreflang codes
+        description: hreflang must be an ISO 639-1 language, optionally with an ISO 3166-1 region (en, en-GB, x-default).
+        fix: Fix the codes (for example "en-GB" rather than "en_GB" or "uk").
+    title:
+      missing:
+        title: Missing title
+        description: The page has no <title> or it is empty. The title is one of the main relevance signals and the text of the search result.
+        fix: Write a unique, descriptive title (about 30–60 characters) with the page's main topic.
+      duplicate:
+        title: Duplicate titles
+        description: Several indexable pages share a title; they compete with each other and cannot be told apart in results.
+        fix: Make every title unique, or consolidate the pages if they really cover the same thing (canonical or 301).
+      too_long:
+        title: Title too long
+        description: Beyond about 60 characters (≈580 px) search engines usually truncate the title.
+        fix: Shorten the title and put the most important words first.
+      too_short:
+        title: Title too short
+        description: A title under 15 characters rarely describes the page well.
+        fix: Expand the title with the page's specific topic.
+      multiple:
+        title: Multiple title tags
+        description: Only one is used; the rest usually come from duplicated templates or plugins.
+        fix: Keep a single <title> in the <head>.
+    meta_description:
+      missing:
+        title: Missing meta description
+        description: There is no meta description or it is empty; the search engine improvises the result snippet from page text.
+        fix: Write a unique 70–160 character description that invites the click.
+      duplicate:
+        title: Duplicate meta descriptions
+        description: Several indexable pages share a description.
+        fix: Write a specific description for each page.
+      length:
+        title: Meta description too short or too long
+        description: Outside about 70–160 characters the description is either too thin or gets truncated.
+        fix: Adjust the description length.
+    h1:
+      missing:
+        title: Missing H1
+        description: The main heading helps users and search engines understand what the page is about.
+        fix: Add a single visible <h1> with the page's topic.
+      multiple:
+        title: Multiple H1s
+        description: Several H1s are not an error in HTML5, but they often point to an unclear structure.
+        fix: Use one H1 for the main topic and H2/H3 for sections.
+      equals_title:
+        title: H1 identical to the title
+        description: Not an error, but a missed chance to cover variants of the topic.
+        fix: 'Optional: use the H1 for a complementary wording of the title.'
+    headings:
+      skipped_level:
+        title: Skipped heading levels
+        description: A level is skipped (for example from H2 to H4), which makes the page harder to navigate with screen readers.
+        fix: Nest levels without gaps (H1 → H2 → H3).
+    content:
+      thin:
+        title: Thin content
+        description: Fewer than 200 words of visible text on an indexable page; it may be seen as low value.
+        fix: Expand the content with useful information or, if the page adds nothing, noindex or consolidate it.
+      duplicate:
+        title: Near-duplicate content
+        description: The text is practically the same as on other indexable pages.
+        fix: Differentiate the content or consolidate the pages with a canonical or a 301 redirect.
+    images:
+      missing_alt:
+        title: Images without an alt attribute
+        description: Without alt, images are not accessible and search engines do not know what they show.
+        fix: Add a descriptive alt; use alt="" only for decorative images.
+    links:
+      internal_broken:
+        title: Broken internal links
+        description: The page links to internal URLs that return an error or do not respond.
+        fix: Update the links to the correct URL or remove them.
+      external_broken:
+        title: Broken external links
+        description: Links to other sites that return an error or do not respond; they hurt experience and trust.
+        fix: Replace the link with a working one (or an archived copy) or remove it.
+      internal_nofollow:
+        title: Internal links with nofollow
+        description: nofollow on internal links stops authority from flowing to your own pages.
+        fix: Remove rel="nofollow" from internal links (except cases such as login or cart).
+      to_redirect:
+        title: Internal links to redirects
+        description: Linking to a URL that redirects adds an unnecessary hop.
+        fix: Link straight to the destination URL.
+      too_many:
+        title: Too many links on the page
+        description: More than 300 links dilute authority and make it hard to tell what matters.
+        fix: Trim menus and repeated link blocks; keep the relevant ones.
+    schema:
+      invalid_json:
+        title: JSON-LD with syntax errors
+        description: A JSON-LD block cannot be parsed, so search engines ignore it entirely.
+        fix: Validate the JSON (trailing commas, quotes, braces) and fix the block.
+      unknown_type:
+        title: Unknown schema.org types
+        description: An @type that does not exist in schema.org is used (often a typo).
+        fix: Fix the type using the exact schema.org name (case matters).
+      missing_required:
+        title: Properties required for rich results are missing
+        description: The markup lacks properties that search engines require to show rich results for that type.
+        fix: Add the properties listed for each type.
+      none:
+        title: No structured data
+        description: The page has no schema.org markup; it could qualify for rich results or help search engines understand the entity.
+        fix: Add JSON-LD suited to the page type (Article, Product, BreadcrumbList, Organization…).
+    https:
+      not_used:
+        title: Pages served over HTTP
+        description: The page returns 200 over unencrypted HTTP instead of redirecting to HTTPS.
+        fix: Serve the whole site over HTTPS and 301-redirect every http:// URL to its https:// version.
+      mixed_content:
+        title: Mixed content
+        description: An HTTPS page loads resources over HTTP; the browser may block them or flag the page as insecure.
+        fix: Load those resources over HTTPS.
+      http_links:
+        title: Internal links to http://
+        description: HTTPS pages link to the HTTP version of your site, causing avoidable redirects.
+        fix: Update the links to https://.
+      cert_invalid:
+        title: Invalid TLS certificate
+        description: A secure connection could not be established (expired certificate, issued for another host, or missing chain).
+        fix: Renew or fix the certificate and include the full intermediate chain.
+    mobile:
+      viewport_missing:
+        title: Missing meta viewport
+        description: Without a viewport, phones show the shrunken desktop version, which hurts mobile usability.
+        fix: Add <meta name="viewport" content="width=device-width, initial-scale=1">.
+    perf:
+      slow_response:
+        title: Slow server response
+        description: Downloading the HTML took more than 1.5 s (measured by the crawler, without resources).
+        fix: Review caching, the database and page generation time on the server.
+      lcp_poor:
+        title: Slow LCP (over 4 s)
+        description: The main element takes more than 4 s to appear on mobile; users perceive the page as slow.
+        fix: Optimise the main image or block (size, format, preload), reduce render-blocking CSS/JS and improve TTFB.
+      cls_poor:
+        title: Unstable layout (CLS above 0.25)
+        description: Content shifts while loading, causing mis-clicks and a poor experience.
+        fix: Reserve space for images, ads and embeds (width/height or aspect-ratio) and avoid inserting content above existing content.
+      inp_poor:
+        title: Slow interaction response (INP above 500 ms)
+        description: According to real users (CrUX), the page is slow to react to clicks and taps.
+        fix: Split long JavaScript tasks, defer third-party scripts and do less work in event handlers.
+      score_low:
+        title: Low performance score
+        description: Lighthouse scores mobile performance below 50 out of 100.
+        fix: Review the opportunities PageSpeed lists for this page, starting with the largest savings.
+    ai:
+      bots_blocked:
+        title: robots.txt blocks AI crawlers
+        description: Some search and AI assistant crawlers cannot read the site. It may be intended; make sure it is.
+        fix: If you want to appear in AI answers, allow those user agents in robots.txt.
+      llms_txt_missing:
+        title: No llms.txt
+        description: llms.txt is a proposal for summarising a site for language models; it is not a standard yet and its effect is not guaranteed.
+        fix: 'Optional: publish /llms.txt with a summary and links to your key pages.'

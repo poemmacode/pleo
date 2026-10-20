@@ -2,7 +2,7 @@ module Audit
   # Groups of indexable pages sharing a title or description, or with near-identical text
   # (duplicates view and reports).
   module Duplicates
-    TYPES = { "title" => "Títulos", "description" => "Descripciones", "content" => "Contenido" }.freeze
+    TYPES = %w[title description content].freeze
     MAX_GROUPS = 500
 
     module_function
@@ -17,7 +17,7 @@ module Audit
         candidates = pages.where.not(text_simhash: nil).where(word_count: Checks::Content::NearDuplicate::MIN_WORDS..)
         by_id = candidates.index_by(&:id)
         NearDuplicates.groups(candidates.map { [ _1.id, _1.text_simhash ] }).map { |ids| ids.map { by_id[_1] } }
-      else raise ArgumentError, "tipo de duplicado desconocido: #{type}"
+      else raise ArgumentError, "unknown duplicate type: #{type}"
       end
       groups.sort_by { -_1.size }.first(MAX_GROUPS)
     end

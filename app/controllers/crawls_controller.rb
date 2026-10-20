@@ -7,12 +7,12 @@ class CrawlsController < ApplicationController
   before_action :set_project, only: %i[new create]
   before_action :set_crawl, only: %i[show pause resume cancel audit]
   rate_limit to: 10, within: 1.minute, only: :create, store: RateLimitStore::STORE,
-    with: -> { redirect_back_or_to root_path, alert: "Demasiados crawls creados; espera un minuto." }
+    with: -> { redirect_back_or_to root_path, alert: t("crawls.flash.rate_limited") }
 
   def new
     @domain = selected_domain
     @form = { use_sitemaps: true, run_pagespeed: true }
-    redirect_to @project, alert: "Añade primero un dominio al proyecto." unless @domain
+    redirect_to @project, alert: t("crawls.flash.add_domain_first") unless @domain
   end
 
   def create
@@ -30,21 +30,21 @@ class CrawlsController < ApplicationController
   def show
   end
 
-  def pause = transition(Crawling::Lifecycle.pause(@crawl), "Crawl en pausa.")
+  def pause = transition(Crawling::Lifecycle.pause(@crawl), t("crawls.flash.paused"))
 
-  def resume = transition(Crawling::Lifecycle.resume(@crawl), "Crawl reanudado.")
+  def resume = transition(Crawling::Lifecycle.resume(@crawl), t("crawls.flash.resumed"))
 
-  def cancel = transition(Crawling::Lifecycle.cancel(@crawl), "Crawl cancelado.")
+  def cancel = transition(Crawling::Lifecycle.cancel(@crawl), t("crawls.flash.cancelled"))
 
   def audit
     if !@crawl.completed? || @crawl.audit_status == "running"
-      return redirect_to @crawl, alert: "Solo se puede repetir la auditoría de un crawl completado.", status: :see_other
+      return redirect_to @crawl, alert: t("crawls.flash.audit_needs_completed"), status: :see_other
     end
 
     @crawl.update!(audit_status: "pending")
     Audit::RunAuditJob.perform_later(@crawl.id)
     Crawling::ProgressBroadcaster.call(@crawl, force: true)
-    redirect_to @crawl, notice: "Auditoría en marcha.", status: :see_other
+    redirect_to @crawl, notice: t("crawls.flash.audit_started"), status: :see_other
   end
 
   private
@@ -71,7 +71,7 @@ class CrawlsController < ApplicationController
         Crawling::ProgressBroadcaster.call(@crawl.reload, force: true)
         redirect_to @crawl, notice:, status: :see_other
       else
-        redirect_to @crawl, alert: "No se puede hacer eso con un crawl #{helpers.crawl_status_label(@crawl.status).downcase}.", status: :see_other
+        redirect_to @crawl, alert: t("crawls.flash.invalid_transition", status: helpers.crawl_status_label(@crawl.status).downcase), status: :see_other
       end
     end
 end

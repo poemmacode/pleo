@@ -1,0 +1,254 @@
+# Audit check texts, keyed by check (Audit::Catalog). Written from scratch; see ADR 0005.
+es:
+  checks:
+    http:
+      4xx:
+        title: Páginas con error 4xx
+        description: La URL responde con un error de cliente (por ejemplo 404). Usuarios y buscadores llegan a una página que no existe.
+        fix: Restaura la página, redirígela (301) a la URL equivalente o elimina los enlaces y entradas de sitemap que apuntan a ella.
+      5xx:
+        title: Páginas con error 5xx
+        description: El servidor falló al servir la página. Si se repite, los buscadores reducen el rastreo y pueden desindexarla.
+        fix: Revisa los logs del servidor para esa URL y corrige el error; comprueba también la capacidad del servidor.
+      timeout:
+        title: Páginas que no respondieron
+        description: No se obtuvo respuesta HTTP (tiempo agotado o conexión rechazada).
+        fix: Comprueba que la página carga y que el servidor no bloquea ni limita en exceso a los rastreadores.
+    redirect:
+      chain:
+        title: Cadenas de redirecciones
+        description: La URL redirige a otra que a su vez redirige. Cada salto añade latencia y desperdicia presupuesto de rastreo.
+        fix: Haz que la primera URL redirija directamente al destino final y actualiza los enlaces internos.
+      loop:
+        title: Bucles de redirección
+        description: Las redirecciones vuelven a una URL ya visitada; la página nunca llega a cargar.
+        fix: Revisa las reglas de redirección (servidor, CMS, CDN) para que terminen en una URL que responda 200.
+      temporary:
+        title: Redirecciones temporales enlazadas
+        description: Enlaces internos llevan a una redirección 302/307. Los buscadores pueden seguir indexando la URL original.
+        fix: Si el cambio es permanente usa 301/308 y enlaza directamente a la URL final.
+    robots:
+      blocked_internal_linked:
+        title: URLs enlazadas bloqueadas por robots.txt
+        description: Hay enlaces internos hacia URLs que robots.txt prohíbe rastrear. Pueden aparecer en resultados sin descripción.
+        fix: Si la URL debe posicionar, permítela en robots.txt; si no, elimina o cambia los enlaces internos.
+      noindex:
+        title: Páginas con noindex
+        description: La página pide no ser indexada (meta robots o X-Robots-Tag). Revisa que sea intencionado.
+        fix: Quita el noindex si la página debe aparecer en buscadores.
+    sitemap:
+      non_200:
+        title: URLs del sitemap que no responden 200
+        description: El sitemap debe listar solo URLs canónicas que respondan 200; las demás confunden a los buscadores.
+        fix: Quita del sitemap las URLs con redirección o error, o sustitúyelas por su destino final.
+      noindex:
+        title: URLs del sitemap no indexables
+        description: 'El sitemap incluye páginas con noindex o con canonical hacia otra URL: señales contradictorias.'
+        fix: Elimina esas URLs del sitemap o haz que sean indexables.
+      missing:
+        title: No se encontró sitemap
+        description: Ni robots.txt declara un sitemap ni existe /sitemap.xml. El sitemap ayuda a descubrir páginas nuevas o poco enlazadas.
+        fix: Publica un sitemap XML con las URLs canónicas y declara su ubicación en robots.txt (línea Sitemap:).
+    page:
+      orphan:
+        title: Páginas huérfanas
+        description: Están en el sitemap pero ninguna página rastreada las enlaza; reciben poca autoridad interna.
+        fix: Enlázalas desde páginas relevantes (menús, categorías, artículos relacionados) o retíralas si sobran.
+      deep:
+        title: Páginas a más de 4 clics de la portada
+        description: Cuanto más profunda está una página, menos se rastrea y menos autoridad recibe.
+        fix: 'Acorta el camino: enlaces desde categorías o la portada, paginación más plana o enlaces relacionados.'
+      too_large:
+        title: HTML demasiado pesado
+        description: Más de 2 MB de HTML ralentiza la carga y el rastreo.
+        fix: 'Reduce el HTML: elimina datos incrustados, CSS/JS en línea innecesario o listados enormes.'
+    canonical:
+      missing:
+        title: Sin etiqueta canonical
+        description: Sin canonical, los buscadores eligen solos la URL principal entre variantes (parámetros, mayúsculas, barra final).
+        fix: Añade <link rel="canonical" href="URL absoluta"> apuntando a la propia URL o a su versión principal.
+      to_non200:
+        title: Canonical hacia una URL que no responde 200
+        description: La canonical apunta a una redirección o a un error; los buscadores probablemente la ignorarán.
+        fix: Haz que la canonical apunte a la URL final que responde 200.
+      to_noindex:
+        title: Canonical hacia una página con noindex
+        description: 'Señales contradictorias: esta página delega en otra que pide no ser indexada.'
+        fix: Elige una única URL principal indexable y apunta la canonical a ella.
+      multiple:
+        title: Varias canonical contradictorias
+        description: La página declara canonicals distintas (en el HTML o en la cabecera Link). Los buscadores pueden ignorarlas todas.
+        fix: Deja una sola declaración canonical.
+      relative_or_invalid:
+        title: Canonical relativa o mal formada
+        description: Una canonical relativa o inválida se interpreta mal con facilidad (por ejemplo, en versiones con o sin www).
+        fix: Usa siempre una URL absoluta con protocolo y host.
+      chain:
+        title: Canonical encadenada
+        description: La canonical apunta a una página que a su vez declara otra canonical.
+        fix: Apunta la canonical directamente a la URL principal final.
+    hreflang:
+      no_return:
+        title: hreflang sin enlace de retorno
+        description: La página declara una versión alternativa que no la declara de vuelta; los buscadores ignoran ese par.
+        fix: Añade en cada versión alternativa el hreflang recíproco hacia esta página.
+      invalid_code:
+        title: Códigos hreflang inválidos
+        description: hreflang debe ser un idioma ISO 639-1, opcionalmente con región ISO 3166-1 (es, es-MX, x-default).
+        fix: Corrige los códigos (por ejemplo «es-ES» en lugar de «es_ES» o «sp»).
+    title:
+      missing:
+        title: Falta el título
+        description: La página no tiene <title> o está vacío. El título es una de las principales señales de relevancia y el texto del resultado.
+        fix: Escribe un título único y descriptivo (unos 30–60 caracteres) con el tema principal de la página.
+      duplicate:
+        title: Títulos duplicados
+        description: Varias páginas indexables comparten título; compiten entre sí y no se distinguen en los resultados.
+        fix: Haz cada título único, o consolida las páginas si realmente tratan lo mismo (canonical o 301).
+      too_long:
+        title: Título demasiado largo
+        description: Por encima de unos 60 caracteres (≈580 px) el buscador suele cortar el título.
+        fix: Acorta el título y pon primero lo más importante.
+      too_short:
+        title: Título demasiado corto
+        description: Un título de menos de 15 caracteres rara vez describe bien la página.
+        fix: Amplía el título con el tema concreto de la página.
+      multiple:
+        title: Varias etiquetas title
+        description: Solo se usa una; las demás suelen venir de plantillas o plugins duplicados.
+        fix: Deja un único <title> en el <head>.
+    meta_description:
+      missing:
+        title: Falta la meta description
+        description: No hay meta description o está vacía; el buscador improvisa el fragmento del resultado con texto de la página.
+        fix: Escribe una descripción única de 70–160 caracteres que invite a hacer clic.
+      duplicate:
+        title: Meta descriptions duplicadas
+        description: Varias páginas indexables comparten descripción.
+        fix: Redacta una descripción específica para cada página.
+      length:
+        title: Meta description demasiado corta o larga
+        description: Fuera de unos 70–160 caracteres la descripción se queda corta o se trunca.
+        fix: Ajusta la longitud de la descripción.
+    h1:
+      missing:
+        title: Falta el H1
+        description: El encabezado principal ayuda a usuarios y buscadores a entender de qué trata la página.
+        fix: Añade un único <h1> visible con el tema de la página.
+      multiple:
+        title: Varios H1
+        description: Varios H1 no son un error en HTML5, pero suelen indicar una jerarquía poco clara.
+        fix: Usa un H1 para el tema principal y H2/H3 para las secciones.
+      equals_title:
+        title: H1 idéntico al título
+        description: No es un error, pero es una oportunidad perdida de cubrir variantes del tema.
+        fix: 'Opcional: usa el H1 para una formulación complementaria del título.'
+    headings:
+      skipped_level:
+        title: Saltos en la jerarquía de encabezados
+        description: Se salta un nivel (por ejemplo de H2 a H4), lo que dificulta la lectura con lectores de pantalla.
+        fix: Encadena los niveles sin saltos (H1 → H2 → H3).
+    content:
+      thin:
+        title: Poco contenido
+        description: Menos de 200 palabras de texto visible en una página indexable; puede considerarse de poco valor.
+        fix: Amplía el contenido con información útil o, si la página no aporta, desindéxala o consolídala.
+      duplicate:
+        title: Contenido casi duplicado
+        description: El texto es prácticamente igual al de otras páginas indexables.
+        fix: Diferencia el contenido o consolida las páginas con canonical o redirección 301.
+    images:
+      missing_alt:
+        title: Imágenes sin atributo alt
+        description: Sin alt, las imágenes no son accesibles y los buscadores no saben qué muestran.
+        fix: Añade un alt descriptivo; usa alt="" solo en imágenes decorativas.
+    links:
+      internal_broken:
+        title: Enlaces internos rotos
+        description: La página enlaza a URLs internas que devuelven error o no responden.
+        fix: Actualiza los enlaces a la URL correcta o elimínalos.
+      external_broken:
+        title: Enlaces externos rotos
+        description: Enlaces a otros sitios que devuelven error o no responden; empeoran la experiencia y la confianza.
+        fix: Sustituye el enlace por uno vigente (o una copia archivada) o elimínalo.
+      internal_nofollow:
+        title: Enlaces internos con nofollow
+        description: nofollow en enlaces internos impide que la autoridad fluya hacia tus propias páginas.
+        fix: Quita rel="nofollow" de los enlaces internos (salvo casos como login o carrito).
+      to_redirect:
+        title: Enlaces internos a redirecciones
+        description: Enlazar a una URL que redirige añade un salto innecesario.
+        fix: Enlaza directamente a la URL de destino.
+      too_many:
+        title: Demasiados enlaces en la página
+        description: Más de 300 enlaces diluyen la autoridad y dificultan entender qué es importante.
+        fix: Reduce menús y bloques de enlaces repetidos; prioriza los relevantes.
+    schema:
+      invalid_json:
+        title: JSON-LD con errores de sintaxis
+        description: Un bloque JSON-LD no se puede leer, así que los buscadores lo ignoran entero.
+        fix: Valida el JSON (comas finales, comillas, llaves) y corrige el bloque.
+      unknown_type:
+        title: Tipos de schema.org desconocidos
+        description: Se usa un @type que no existe en schema.org (a menudo una errata).
+        fix: Corrige el tipo usando el nombre exacto de schema.org (respeta mayúsculas).
+      missing_required:
+        title: Faltan propiedades necesarias para resultados enriquecidos
+        description: El marcado no incluye propiedades que los buscadores exigen para mostrar resultados enriquecidos de ese tipo.
+        fix: Añade las propiedades indicadas en cada tipo.
+      none:
+        title: Sin datos estructurados
+        description: La página no tiene marcado schema.org; podría optar a resultados enriquecidos o ayudar a entender la entidad.
+        fix: Añade JSON-LD adecuado al tipo de página (Article, Product, BreadcrumbList, Organization…).
+    https:
+      not_used:
+        title: Páginas servidas por HTTP
+        description: La página responde 200 por HTTP sin cifrar en lugar de redirigir a HTTPS.
+        fix: Sirve todo el sitio por HTTPS y redirige con 301 cada URL http:// a su versión https://.
+      mixed_content:
+        title: Contenido mixto
+        description: Una página HTTPS carga recursos por HTTP; el navegador puede bloquearlos o marcar la página como insegura.
+        fix: Carga esos recursos por HTTPS (o con URLs relativas al protocolo del sitio).
+      http_links:
+        title: Enlaces internos a http://
+        description: Páginas HTTPS enlazan a la versión HTTP de tu sitio, lo que provoca redirecciones evitables.
+        fix: Actualiza los enlaces a https://.
+      cert_invalid:
+        title: Certificado TLS inválido
+        description: No se pudo establecer una conexión segura (certificado caducado, de otro host o sin cadena válida).
+        fix: Renueva o corrige el certificado e incluye la cadena intermedia completa.
+    mobile:
+      viewport_missing:
+        title: Falta la meta viewport
+        description: Sin viewport, los móviles muestran la versión de escritorio reducida; perjudica la usabilidad móvil.
+        fix: Añade <meta name="viewport" content="width=device-width, initial-scale=1">.
+    perf:
+      slow_response:
+        title: Respuesta lenta del servidor
+        description: La descarga del HTML tardó más de 1,5 s (medido por el rastreador, sin recursos).
+        fix: Revisa caché, base de datos y tiempo de generación de la página en el servidor.
+      lcp_poor:
+        title: LCP lento (más de 4 s)
+        description: El elemento principal tarda más de 4 s en mostrarse en móvil; los usuarios perciben la página como lenta.
+        fix: Optimiza la imagen o bloque principal (tamaño, formato, preload), reduce el CSS/JS que bloquea el render y mejora el TTFB.
+      cls_poor:
+        title: Diseño inestable (CLS mayor de 0,25)
+        description: El contenido se desplaza mientras carga, lo que provoca clics por error y una mala experiencia.
+        fix: Reserva espacio para imágenes, anuncios e incrustaciones (width/height o aspect-ratio) y evita insertar contenido encima del existente.
+      inp_poor:
+        title: Respuesta lenta a la interacción (INP mayor de 500 ms)
+        description: Según usuarios reales (CrUX), la página tarda en reaccionar a clics y toques.
+        fix: Divide las tareas largas de JavaScript, aplaza scripts de terceros y reduce el trabajo en los manejadores de eventos.
+      score_low:
+        title: Puntuación de rendimiento baja
+        description: Lighthouse puntúa el rendimiento móvil por debajo de 50 sobre 100.
+        fix: Revisa las oportunidades que indica PageSpeed para esta página, empezando por las de más ahorro.
+    ai:
+      bots_blocked:
+        title: robots.txt bloquea rastreadores de IA
+        description: Algunos rastreadores de buscadores y asistentes de IA no pueden leer el sitio. Puede ser intencionado; revisa que lo sea.
+        fix: Si quieres aparecer en respuestas de IA, permite esos user-agents en robots.txt.
+      llms_txt_missing:
+        title: Sin llms.txt
+        description: llms.txt es una propuesta para resumir el sitio a modelos de lenguaje; aún no es un estándar ni garantiza efectos.
+        fix: 'Opcional: publica /llms.txt con un resumen y enlaces a tus páginas clave.'

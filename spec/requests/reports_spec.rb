@@ -17,10 +17,10 @@ RSpec.describe "Reports (exports)" do
     perform_enqueued_jobs { post crawl_reports_path(crawl), params: { kind: "pages_csv" } }
 
     report = crawl.reports.sole
-    expect(report).to have_attributes(status: "done", filename: a_string_matching(/\Aseo-example\.com-\d{8}-paginas\.csv\z/))
+    expect(report).to have_attributes(status: "done", filename: a_string_matching(/\Aseo-example\.com-\d{8}-pages\.csv\z/))
 
     get crawl_path(crawl)
-    expect(response.body).to include("Páginas (CSV)", crawl_report_path(crawl, report))
+    expect(response.body).to include("Pages (CSV)", crawl_report_path(crawl, report))
   end
 
   it "downloads a finished report as an attachment" do
@@ -37,7 +37,7 @@ RSpec.describe "Reports (exports)" do
   it "refuses reports before the audit is done and unknown kinds" do
     crawl.update!(audit_status: "running")
     expect { post crawl_reports_path(crawl), params: { kind: "pdf" } }.not_to have_enqueued_job
-    expect(flash[:alert]).to include("cuando termina la auditoría")
+    expect(flash[:alert]).to include("once the audit has finished")
 
     crawl.update!(audit_status: "done")
     post crawl_reports_path(crawl), params: { kind: "exe" }

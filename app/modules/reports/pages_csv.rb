@@ -11,7 +11,7 @@ module Reports
 
     def render
       BOM + CSV.generate do |csv|
-        csv << Dataset::PAGE_HEADERS
+        csv << @dataset.page_headers
         @dataset.each_page_row { csv << _1 }
       end
     end

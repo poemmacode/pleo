@@ -36,7 +36,7 @@ module SafeHttp
 
     # Returns 0.0 if the caller may send a request now, otherwise the seconds to wait.
     def reserve(host, rps:)
-      raise ArgumentError, "rps debe estar entre 0 y #{MAX_RPS}" unless rps.positive? && rps <= MAX_RPS
+      raise ArgumentError, "rps must be between 0 and #{MAX_RPS}" unless rps.positive? && rps <= MAX_RPS
 
       interval_ms = (1000.0 / rps).ceil
       @redis.call("EVAL", RESERVE, 1, key(host), interval_ms) / 1000.0
@@ -48,7 +48,7 @@ module SafeHttp
       loop do
         wait = reserve(host, rps:)
         return waited if wait.zero?
-        raise Errors::Timeout, "espera de turno para #{host} superó #{max_wait}s" if waited + wait > max_wait
+        raise Errors::Timeout, "waiting for a slot on #{host} exceeded #{max_wait}s" if waited + wait > max_wait
 
         sleep(wait)
         waited += wait

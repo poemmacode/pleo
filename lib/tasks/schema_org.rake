@@ -29,6 +29,6 @@ namespace :schema_org do
             types:, properties:, enumeration_members: members }
     path = Rails.root.join("config/schema_org/vocabulary.json")
     File.write(path, JSON.generate(out.deep_stringify_keys.sort.to_h))
-    puts "#{types.size} tipos, #{properties.size} propiedades, #{members.size} miembros → #{path}"
+    puts "#{types.size} types, #{properties.size} properties, #{members.size} members → #{path}"
   end
 end

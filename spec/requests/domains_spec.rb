@@ -20,7 +20,7 @@ RSpec.describe "Domains" do
     post project_domains_path(project), params: { domain: { host: "169.254.169.254" } }
 
     expect(response).to have_http_status(:unprocessable_entity)
-    expect(response.body).to include("Host no puede ser una dirección IP")
+    expect(response.body).to include("Host can&#39;t be an IP address")
   end
 
   it "verifies a domain via DNS TXT" do
@@ -32,7 +32,7 @@ RSpec.describe "Domains" do
     post verify_domain_path(domain), params: { method: "dns_txt" }
 
     expect(response).to redirect_to(project_path(project))
-    expect(flash[:notice]).to eq("example.com verificado.")
+    expect(flash[:notice]).to eq("example.com verified.")
     expect(domain.reload).to be_verified
   end
 
@@ -44,7 +44,7 @@ RSpec.describe "Domains" do
 
     post verify_domain_path(domain), params: { method: "dns_txt" }
 
-    expect(flash[:alert]).to include("No se encontró el registro TXT")
+    expect(flash[:alert]).to include("TXT record")
   end
 
   it "does not expose or change another user's domains" do

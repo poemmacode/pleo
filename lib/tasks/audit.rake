@@ -3,6 +3,6 @@ namespace :audit do
   task reextract: :environment do
     crawl = Crawl.find(ENV.fetch("CRAWL_ID"))
     Crawling::PageAnalysis.reextract(crawl)
-    puts "Re-extraídas #{crawl.pages.count} páginas del crawl #{crawl.id}"
+    puts "Re-extracted #{crawl.pages.count} pages of crawl #{crawl.id}"
   end
 end

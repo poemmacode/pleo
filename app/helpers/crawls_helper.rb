@@ -1,28 +1,14 @@
 module CrawlsHelper
-  STATUS_LABELS = {
-    "queued" => "En cola", "running" => "Rastreando", "paused" => "En pausa",
-    "completed" => "Completado", "failed" => "Fallido", "cancelled" => "Cancelado"
-  }.freeze
-  REASON_LABELS = {
-    "user" => "por el usuario",
-    "server_overloaded" => "el servidor respondía con errores; se redujo la velocidad y se pausó",
-    "max_pages_reached" => "se alcanzó el máximo de páginas",
-    "robots_unreachable" => "robots.txt no responde: no se rastrea nada (RFC 9309)"
-  }.freeze
-  SKIP_LABELS = {
-    "robots" => "Bloqueadas por robots.txt", "limit" => "Fuera del límite de páginas",
-    "unsafe_host" => "Host no permitido (IP privada)", "error" => "Error repetido", "cancelled" => "Crawl cancelado"
-  }.freeze
-  ROBOTS_LABELS = {
-    "parsed" => "robots.txt leído", "unavailable" => "sin robots.txt (todo permitido)",
-    "unreachable" => "robots.txt inaccesible (nada permitido)"
-  }.freeze
-  PAGE_STATUS_FILTERS = { "" => "Todos", "2xx" => "2xx", "3xx" => "3xx", "4xx" => "4xx", "5xx" => "5xx", "error" => "Sin respuesta" }.freeze
+  PAGE_STATUS_FILTERS = [ "", "2xx", "3xx", "4xx", "5xx", "error" ].freeze
 
-  def crawl_status_label(status) = STATUS_LABELS.fetch(status, status)
-  def crawl_reason_label(reason) = REASON_LABELS.fetch(reason, reason)
-  def skip_reason_label(reason) = SKIP_LABELS.fetch(reason, reason)
-  def robots_outcome_label(outcome) = ROBOTS_LABELS.fetch(outcome, outcome)
+  def crawl_status_label(status) = t("crawls.statuses.#{status}", default: status.to_s)
+  def crawl_reason_label(reason) = t("crawls.reasons.#{reason}", default: reason.to_s)
+  def skip_reason_label(reason) = t("crawls.skip_reasons.#{reason}", default: reason.to_s)
+  def robots_outcome_label(outcome) = t("crawls.robots_outcomes.#{outcome}", default: outcome.to_s)
+
+  def page_status_filter_options
+    PAGE_STATUS_FILTERS.map { |value| [ t("crawls.page_filters.#{value.presence || "all"}"), value ] }
+  end
 
   def crawl_finished?(crawl) = Crawl::FINISHED_STATUSES.include?(crawl.status)
 

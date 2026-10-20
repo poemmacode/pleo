@@ -1,0 +1,10 @@
+<span class="locale-switcher" aria-label="<%= t(".label") %>">
+  <% I18n.available_locales.each do |locale| %>
+    <% if locale == I18n.locale %>
+      <strong aria-current="true"><%= locale.to_s.upcase %></strong>
+    <% else %>
+      <%= button_to locale.to_s.upcase, locale_path, method: :patch, params: { locale: }, class: "link-button",
+                    title: t("locales.#{locale}") %>
+    <% end %>
+  <% end %>
+</span>

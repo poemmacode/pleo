@@ -46,7 +46,9 @@ module SeoPlatform
     # Dates are shown in this zone (e.g. TIME_ZONE=America/Mexico_City); stored in UTC.
     config.time_zone = ENV.fetch("TIME_ZONE", "UTC")
 
-    config.i18n.available_locales = %i[es en]
-    config.i18n.default_locale = :es
+    # English by default; each user can switch to Spanish (User#locale).
+    config.i18n.available_locales = %i[en es]
+    config.i18n.default_locale = :en
+    config.i18n.load_path += Dir[Rails.root.join("config/locales/**/*.yml")]
   end
 end

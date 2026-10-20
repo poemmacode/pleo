@@ -1,65 +1,65 @@
-<%# Rendered in requests and in Turbo Stream broadcasts from jobs: depends only on the crawl. %>
+<%# Rendered in requests and in Turbo Stream broadcasts from jobs: depends only on the crawl and the locale. %>
 <div id="<%= dom_id(crawl, :progress) %>" class="stack">
   <section class="card stack">
     <div class="row">
       <span class="badge status-<%= crawl.status %>"><%= crawl_status_label(crawl.status) %></span>
       <% if crawl.status_reason %><span class="muted"><%= crawl_reason_label(crawl.status_reason) %></span><% end %>
-      <span class="muted"><%= crawl.current_rps %> pet./s</span>
+      <span class="muted"><%= t(".rate", rps: crawl.current_rps) %></span>
     </div>
     <% percent = crawl_percent(crawl) %>
     <div class="progress" role="progressbar" aria-valuenow="<%= percent %>" aria-valuemin="0" aria-valuemax="100">
       <div style="width: <%= percent %>%"></div>
     </div>
     <dl class="stats">
-      <div><dt>Descubiertas</dt><dd><%= crawl.pages_discovered %></dd></div>
-      <div><dt>Rastreadas</dt><dd><%= crawl.pages_crawled %></dd></div>
-      <div><dt>Con error</dt><dd><%= crawl.pages_failed %></dd></div>
-      <div><dt>Omitidas</dt><dd><%= crawl.pages_skipped %></dd></div>
-      <div><dt>Límite</dt><dd><%= crawl.crawl_config.max_pages %></dd></div>
+      <div><dt><%= t(".discovered") %></dt><dd><%= crawl.pages_discovered %></dd></div>
+      <div><dt><%= t(".crawled") %></dt><dd><%= crawl.pages_crawled %></dd></div>
+      <div><dt><%= t(".failed") %></dt><dd><%= crawl.pages_failed %></dd></div>
+      <div><dt><%= t(".skipped") %></dt><dd><%= crawl.pages_skipped %></dd></div>
+      <div><dt><%= t(".limit") %></dt><dd><%= crawl.crawl_config.max_pages %></dd></div>
     </dl>
     <div class="row">
       <% if crawl.running? %>
-        <%= button_to "Pausar", pause_crawl_path(crawl), class: "secondary" %>
+        <%= button_to t(".pause"), pause_crawl_path(crawl), class: "secondary" %>
       <% end %>
       <% if crawl.paused? %>
-        <%= button_to "Reanudar", resume_crawl_path(crawl) %>
+        <%= button_to t(".resume"), resume_crawl_path(crawl) %>
       <% end %>
       <% unless crawl_finished?(crawl) %>
-        <%= button_to "Cancelar", cancel_crawl_path(crawl), class: "danger", form: { data: { turbo_confirm: "¿Cancelar el crawl?" } } %>
+        <%= button_to t(".cancel"), cancel_crawl_path(crawl), class: "danger", form: { data: { turbo_confirm: t(".cancel_confirm") } } %>
       <% end %>
     </div>
   </section>
 
   <div class="grid">
     <section class="card">
-      <h2>Códigos de estado</h2>
+      <h2><%= t(".status_codes") %></h2>
       <% codes = crawl.pages.group(:status_code).count.sort_by { |code, _| code || 0 } %>
       <% if codes.empty? %>
-        <p class="muted">Aún no hay páginas.</p>
+        <p class="muted"><%= t(".no_pages") %></p>
       <% else %>
         <ul class="plain">
-          <% codes.each do |code, count| %><li><code><%= code || "sin respuesta" %></code> <%= count %></li><% end %>
+          <% codes.each do |code, count| %><li><code><%= code || t(".no_response") %></code> <%= count %></li><% end %>
         </ul>
       <% end %>
       <% skipped = crawl.crawl_urls.where(state: "skipped").group(:skip_reason).count %>
       <% if skipped.any? %>
-        <h2>Omitidas</h2>
+        <h2><%= t(".skipped") %></h2>
         <ul class="plain">
           <% skipped.each do |reason, count| %><li><%= skip_reason_label(reason) %>: <%= count %></li><% end %>
         </ul>
       <% end %>
     </section>
     <section class="card">
-      <h2>robots.txt y sitemaps</h2>
+      <h2><%= t(".robots_and_sitemaps") %></h2>
       <ul class="plain">
         <% crawl.crawl_hosts.order(:host).each do |host| %>
           <li><%= host.host %>: <%= robots_outcome_label(host.robots_outcome) %><%= " (#{host.robots_status})" if host.robots_status %><%= ", Crawl-delay #{host.crawl_delay}s" if host.crawl_delay %></li>
         <% end %>
       </ul>
-      <% if crawl.sitemap_status == "pending" %><p class="muted">Leyendo sitemaps…</p><% end %>
+      <% if crawl.sitemap_status == "pending" %><p class="muted"><%= t(".reading_sitemaps") %></p><% end %>
       <ul class="plain">
         <% crawl.sitemaps.each do |sitemap| %>
-          <li><code><%= sitemap["url"] %></code> — <%= sitemap["error"] || "#{sitemap["status"]}: #{sitemap["urls"]} URLs, #{sitemap["added"]} nuevas" %></li>
+          <li><code><%= sitemap["url"] %></code> — <%= sitemap["error"] || t(".sitemap_result", status: sitemap["status"], urls: sitemap["urls"], added: sitemap["added"]) %></li>
         <% end %>
       </ul>
     </section>

@@ -5,10 +5,10 @@ RSpec.describe Crawling::LinkExtractor do
     html = <<~HTML
       <html><head><base href="https://cdn.example.com/root/"><meta name="ROBOTS" content="noindex, nofollow"></head>
       <body>
-        <a href="page">  Texto   del enlace </a>
+        <a href="page">  Link   text </a>
         <a href="/abs" rel="nofollow ugc"><img src="x.png" alt="Logo"></a>
         <a href="javascript:void(0)">js</a>
-        <map><area href="/area" alt="Zona"></map>
+        <map><area href="/area" alt="Zone"></map>
       </body></html>
     HTML
 
@@ -16,9 +16,9 @@ RSpec.describe Crawling::LinkExtractor do
 
     expect(result.meta_nofollow).to be(true)
     expect(result.links.map(&:to_h)).to eq([
-      { url: "https://cdn.example.com/root/page", anchor: "Texto del enlace", rel: [] },
+      { url: "https://cdn.example.com/root/page", anchor: "Link text", rel: [] },
       { url: "https://cdn.example.com/abs", anchor: "Logo", rel: %w[nofollow ugc] },
-      { url: "https://cdn.example.com/area", anchor: "Zona", rel: [] }
+      { url: "https://cdn.example.com/area", anchor: "Zone", rel: [] }
     ])
   end
 

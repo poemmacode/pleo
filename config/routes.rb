@@ -2,6 +2,7 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   resource :session, only: %i[new create destroy]
+  resource :locale, only: :update
   get "bot" => "bot#show", as: :bot_info
   root "projects#index"
 

@@ -14,7 +14,7 @@ module SafeHttp
         records.map { IPAddr.new(_1.address.to_s) }
       end
     rescue Resolv::ResolvError, Resolv::ResolvTimeout => e
-      raise Errors::Resolution, "no se pudo resolver #{host}: #{e.class.name.demodulize}"
+      raise Errors::Resolution, "could not resolve #{host}: #{e.class.name.demodulize}"
     end
   end
 end

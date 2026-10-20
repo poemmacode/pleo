@@ -1,25 +1,25 @@
-# ADR 0004 — Motor de crawling (Épica B)
+# ADR 0004 — Crawling engine (Epic B)
 
-Fecha: 2026-10-17 · Estado: aceptada
+Date: 2026-10-17 · Status: accepted
 
-## Decisiones
+## Decisions
 
-1. **Lanes en lugar de un job por URL.** El lane se reencola de inmediato, no con `wait`: un job programado no empieza hasta la siguiente consulta de Sidekiq (unos 5 s), y eso bajaba un crawl a 0,5 req/s hasta unas 0,19 req/s reales. Solo se programa cuando el limitador pide esperar más de 2 s (corregido el 2026-10-17). `Crawling::FetchLaneJob` reclama la siguiente URL de `crawl_urls` (`FOR UPDATE SKIP LOCKED`, orden BFS por `depth`), la procesa y se reencola. Pausar o cancelar corta las peticiones nuevas de inmediato (el lane comprueba el estado al empezar) y no hay que purgar miles de jobs. El número de lanes (1–4) solo da paralelismo; la velocidad la fija `HostRateLimiter`, así que lanzar lanes de más no tiene efecto.
-2. **Presupuesto atómico.** `pages_claimed` se incrementa con un `UPDATE … WHERE pages_claimed < max_pages`; se devuelve al omitir o reencolar. Así `max_pages` nunca se supera aunque haya lanes concurrentes.
-3. **Las redirecciones no se siguen dentro de una petición.** Cada URL se pide con `follow_redirects: false`. Un 3xx se guarda como página (`redirect_url`) y el destino entra en la frontera (`source = redirect`). Las cadenas y bucles se reconstruyen en la Épica C a partir del grafo; por eso no existe la columna `redirect_chain` que proponía el diseño.
-4. **robots.txt por host** (`crawl_hosts`), descargado la primera vez que se necesita. El alcance `domain` puede abarcar varios subdominios, y cada uno tiene su propio robots.txt. Si es inaccesible (5xx, 429, error) no se rastrea ese host (RFC 9309). Si el host es el inicial, el crawl termina con `robots_unreachable`.
-5. **Alcance `domain` = host verificado y los que cuelgan de él.** Verificar `www.example.com` no autoriza `blog.example.com`.
-6. **Sitemaps** en un job aparte, en paralelo con el crawl: los de robots.txt más `/sitemap.xml`, índices hasta 3 niveles, un máximo de 200 archivos y 50 MB descomprimidos por archivo. Se leen en streaming con `Nokogiri::XML::Reader` (`NONET`, sin entidades externas). Solo se descargan sitemaps alojados en hosts del dominio verificado. Las URLs de sitemap entran con `depth = NULL` (van al final de la cola) y, si después aparecen enlazadas, se quedan con la profundidad menor. Al terminar el crawl, `depth` e `in_sitemap` se sincronizan en `pages`.
-7. **Límite de descubrimiento**: como mucho `10 × max_pages` URLs en la frontera.
-8. **HTML guardado** comprimido con gzip en `page_bodies` (opción `store_html`, activada por defecto), para que las comprobaciones de la Épica C se puedan repetir sin volver a descargar. Queda pendiente una política de retención.
-9. **Reintentos**: 429/503 (respetando `Retry-After` vía `penalize`) y errores de conexión, hasta 3 intentos. Los timeouts se registran directamente como fallo (`fetch_error`).
-10. **Velocidad adaptativa**: `SafeHttp::AdaptiveRate` se persiste en `crawls.adaptive_rate` bajo `with_lock`. Con `:pause`, el crawl pasa a `paused` con `status_reason = server_overloaded`.
+1. **Lanes instead of one job per URL.** `Crawling::FetchLaneJob` claims the next URL from `crawl_urls` (`FOR UPDATE SKIP LOCKED`, BFS order by `depth`), processes it and re-enqueues itself. The lane re-enqueues immediately, not with `wait`: a scheduled job does not start until Sidekiq's next poll (about 5 s), which dropped a 0.5 req/s crawl to about 0.19 req/s in practice. It is only scheduled when the limiter asks to wait more than 2 s (fixed on 2026-10-17). Pausing or cancelling stops new requests at once (the lane checks the state when it starts) and there are no thousands of jobs to purge. The number of lanes (1–4) only provides parallelism; the speed is set by `HostRateLimiter`, so extra lanes have no effect.
+2. **Atomic budget.** `pages_claimed` is incremented with an `UPDATE … WHERE pages_claimed < max_pages`, and given back when a URL is skipped or re-queued. `max_pages` is therefore never exceeded, even with concurrent lanes.
+3. **Redirects are not followed within a request.** Each URL is requested with `follow_redirects: false`. A 3xx is stored as a page (`redirect_url`) and the target enters the frontier (`source = redirect`). Chains and loops are rebuilt in Epic C from the graph; that is why the `redirect_chain` column proposed in the design does not exist.
+4. **robots.txt per host** (`crawl_hosts`), downloaded the first time it is needed. The `domain` scope can span several subdomains, each with its own robots.txt. If it is unreachable (5xx, 429, error) that host is not crawled (RFC 9309). If it is the start host, the crawl ends with `robots_unreachable`.
+5. **`domain` scope = the verified host and the hosts under it.** Verifying `www.example.com` does not authorise `blog.example.com`.
+6. **Sitemaps** in a separate job, in parallel with the crawl: those in robots.txt plus `/sitemap.xml`, indexes up to 3 levels, at most 200 files and 50 MB decompressed per file. They are streamed with `Nokogiri::XML::Reader` (`NONET`, no external entities). Only sitemaps hosted on hosts of the verified domain are downloaded. Sitemap URLs enter with `depth = NULL` (end of the queue) and, if they later turn up as links, keep the lower depth. When the crawl ends, `depth` and `in_sitemap` are synced into `pages`.
+7. **Discovery limit**: at most `10 × max_pages` URLs in the frontier.
+8. **Stored HTML**, gzip-compressed in `page_bodies` (`store_html` option, on by default), so Epic C's checks can be re-run without downloading again. A retention policy is still pending.
+9. **Retries**: 429/503 (honouring `Retry-After` via `penalize`) and connection errors, up to 3 attempts. Timeouts are recorded straight away as a failure (`fetch_error`).
+10. **Adaptive rate**: `SafeHttp::AdaptiveRate` is persisted in `crawls.adaptive_rate` under `with_lock`. On `:pause`, the crawl becomes `paused` with `status_reason = server_overloaded`.
 
-## Cambio posterior (2026-10-20)
+## Later change (2026-10-20)
 
-Límites para dominios **sin verificar** ampliados de 200 páginas a 0,5 req/s a **2 000 páginas y 2 req/s**, con valores por defecto de 500 páginas a 1 req/s. Se mantiene la confirmación de términos. Motivo: con 200 páginas no se podían hacer auditorías útiles de sitios propios sin verificarlos antes. 2 req/s sigue siendo una carga baja para cualquier servidor, y `robots.txt`, `Crawl-delay` y la velocidad adaptativa siguen aplicándose.
+Limits for **unverified** domains raised from 200 pages at 0.5 req/s to **2,000 pages and 2 req/s**, with defaults of 500 pages at 1 req/s. The terms confirmation stays. Reason: with 200 pages it was impossible to run useful audits of one's own sites without verifying them first. 2 req/s is still a low load for any server, and `robots.txt`, `Crawl-delay` and the adaptive rate still apply.
 
-## Limitaciones
+## Limitations
 
-- La prueba de integración ejecuta los jobs en línea (`perform_enqueued_jobs`), así que no ejerce concurrencia real. La concurrencia se probó a mano con Sidekiq contra books.toscrape.com: 20 páginas a 0,5 req/s, separación mínima medida de 1,9 s.
-- Los claims abandonados por un worker caído se recuperan pasados 2 minutos, pero solo cuando otro lane llega a `maybe_finish` o se reanuda el crawl. Falta un watchdog periódico para crawls sin ningún lane vivo (sidekiq-cron, Épica K).
+- The integration test runs jobs inline (`perform_enqueued_jobs`), so it does not exercise real concurrency. Concurrency was tested by hand with Sidekiq against books.toscrape.com: 20 pages at 0.5 req/s, minimum measured gap 1.9 s.
+- Claims abandoned by a dead worker are recovered after 2 minutes, but only when another lane reaches `maybe_finish` or the crawl is resumed. A periodic watchdog for crawls with no live lane is missing (sidekiq-cron, Epic K).

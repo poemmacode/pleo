@@ -24,11 +24,11 @@ RSpec.describe "Crawl results (pages, issues, duplicates)" do
     get crawl_path(crawl)
 
     body = response.body
-    expect(body).to include("Salud del sitio", "Rastreabilidad", "Metadatos", "Páginas con error 4xx", "Título demasiado largo",
-                            "Cómo arreglarlo", "frente al crawl del", "(70)")
+    expect(body).to include("Site health", "Crawlability", "Metadata", "Pages returning 4xx errors", "Title too long",
+                            "How to fix it", "compared with the crawl of", "(70)")
     expect(body).to include(crawl.health_score > 70 ? "▲ +" : "▼ −")
     expect(body).not_to include("−-")
-    expect(body.index("Páginas con error 4xx")).to be < body.index("Título demasiado largo")
+    expect(body.index("Pages returning 4xx errors")).to be < body.index("Title too long")
     expect(previous.reload.health_score).to eq(70)
     expect(body).to include(%(src="#{crawl_issue_path(crawl, "http.4xx")}"))
   end
@@ -51,42 +51,42 @@ RSpec.describe "Crawl results (pages, issues, duplicates)" do
   end
 
   it "shows PageSpeed results on the crawl and on the page detail" do
-    page = audit_page("/lento")
+    page = audit_page("/slow")
     PerformanceResult.create!(crawl:, page:, fetched_at: Time.current, performance_score: 38, lcp_ms: 5200, cls: 0.31, tbt_ms: 640,
                               field_scope: "url", field_category: "SLOW", field_lcp_ms: 4600, field_inp_ms: 620, field_cls: 0.12,
-                              opportunities: [ { "id" => "x", "title" => "Mejora la entrega de imágenes", "savings_ms" => 1500 } ])
+                              opportunities: [ { "id" => "x", "title" => "Improve image delivery", "savings_ms" => 1500 } ])
     crawl.update!(audit_status: "done", performance_status: "done")
 
     get crawl_path(crawl)
-    expect(response.body).to include("Rendimiento móvil", "https://example.com/lento", "5,2 s", "0,31",
-                                     "lenta (esta página): LCP 4,6 s, INP 620 ms, CLS 0,12", "Mejora principal: Mejora la entrega de imágenes")
+    expect(response.body).to include("Mobile performance", "https://example.com/slow", "5.2 s", "0.31",
+                                     "slow (this page): LCP 4.6 s, INP 620 ms, CLS 0.12", "Top improvement: Improve image delivery")
 
     get crawl_page_path(crawl, page)
-    expect(response.body).to include("Speed Index", "ahorro estimado 1,5 s")
+    expect(response.body).to include("Speed Index", "estimated saving 1.5 s")
   end
 
   it "explains when PageSpeed was skipped for lack of an API key" do
     crawl.update!(audit_status: "done", performance_status: "skipped_no_key")
 
     get crawl_path(crawl)
-    expect(response.body).to include("falta la API key de PageSpeed Insights")
+    expect(response.body).to include("the PageSpeed Insights API key is missing")
   end
 
   it "filters pages by status class" do
     audit_page("/ok")
-    audit_page("/rota", status_code: 404)
-    audit_page("/caida", status_code: nil, fetch_error: "Timeout: x")
+    audit_page("/broken", status_code: 404)
+    audit_page("/down", status_code: nil, fetch_error: "Timeout: x")
 
     get crawl_pages_path(crawl, status: "4xx")
-    expect(response.body).to include("https://example.com/rota")
+    expect(response.body).to include("https://example.com/broken")
     expect(response.body).not_to include("https://example.com/ok")
 
     get crawl_pages_path(crawl, status: "error")
-    expect(response.body).to include("https://example.com/caida", "Timeout: x")
+    expect(response.body).to include("https://example.com/down", "Timeout: x")
   end
 
   it "shows a page with its extraction, structured data, issues and links" do
-    page = audit_page("/a", title: "Título", headings: [ { "level" => 1, "text" => "Cabecera" } ])
+    page = audit_page("/a", title: "Page title", headings: [ { "level" => 1, "text" => "Main heading" } ])
     other = audit_page("/b")
     audit_link(other, "https://example.com/a")
     audit_link(page, "https://ext.com/", internal: false)
@@ -97,18 +97,18 @@ RSpec.describe "Crawl results (pages, issues, duplicates)" do
 
     get crawl_page_path(crawl, page)
 
-    expect(response.body).to include("Título", "Cabecera", "Product", "missing_required · Product · name",
-                                     "Título demasiado corto", "https://ext.com/", "https://example.com/b")
+    expect(response.body).to include("Page title", "Main heading", "Product", "missing_required · Product · name",
+                                     "Title too short", "https://ext.com/", "https://example.com/b")
   end
 
   it "groups duplicate titles" do
     same = Digest::SHA256.digest("x")
-    audit_page("/a", title: "Igual", title_hash: same)
-    audit_page("/b", title: "Igual", title_hash: same)
+    audit_page("/a", title: "Same title", title_hash: same)
+    audit_page("/b", title: "Same title", title_hash: same)
 
     get crawl_duplicates_path(crawl, type: "title")
 
-    expect(response.body).to include("Igual", "2 páginas", "https://example.com/a", "https://example.com/b")
+    expect(response.body).to include("Same title", "2 pages", "https://example.com/a", "https://example.com/b")
   end
 
   it "does not expose other users' results" do

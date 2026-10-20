@@ -15,8 +15,8 @@ module Crawling
       domain = @project.domains.find(@params[:domain_id])
       config = CrawlConfig.build(@params.except(:domain_id, :terms_accepted), domain:, terms_accepted: @params[:terms_accepted])
       return failure(validation_errors(config)) unless config.valid?
-      return failure([ error("crawl_in_progress", "Ya hay un crawl activo para #{domain.host}") ], :conflict) if host_busy?(domain)
-      return failure([ error("too_many_crawls", "Máximo #{MAX_ACTIVE_PER_USER} crawls activos a la vez") ], :conflict) if user_busy?
+      return failure([ error("crawl_in_progress", I18n.t("crawls.create_errors.crawl_in_progress", host: domain.host)) ], :conflict) if host_busy?(domain)
+      return failure([ error("too_many_crawls", I18n.t("crawls.create_errors.too_many_crawls", count: MAX_ACTIVE_PER_USER)) ], :conflict) if user_busy?
 
       SafeHttp::Client.new.preflight!(config.start_url)
 
@@ -27,9 +27,9 @@ module Crawling
       StartCrawlJob.perform_later(crawl.id)
       Result.new(crawl, [], :accepted)
     rescue SafeHttp::Errors::UnsafeTarget => e
-      failure([ error("unsafe_target", e.message, "start_url") ])
+      failure([ error("unsafe_target", I18n.t("crawls.create_errors.unsafe_target", detail: e.message), "start_url") ])
     rescue SafeHttp::Errors::Base => e
-      failure([ error("start_url_unreachable", e.message, "start_url") ])
+      failure([ error("start_url_unreachable", I18n.t("crawls.create_errors.unreachable", detail: e.message), "start_url") ])
     end
 
     private

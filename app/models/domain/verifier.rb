@@ -30,10 +30,10 @@ class Domain::Verifier
   private
     def check(method)
       unless Domain::VERIFICATION_METHODS.include?(method)
-        return Result.new(false, "invalid_method", "Método de verificación desconocido")
+        return Result.new(false, "invalid_method", I18n.t("domain_verification.invalid_method"))
       end
       unless AVAILABLE_METHODS.include?(method)
-        return Result.new(false, "method_not_available", "Este método estará disponible en una próxima versión")
+        return Result.new(false, "method_not_available", I18n.t("domain_verification.method_not_available"))
       end
 
       send(:"verify_#{method}")
@@ -44,10 +44,10 @@ class Domain::Verifier
       if values.include?(@domain.txt_record_value)
         success
       else
-        failure("No se encontró el registro TXT #{@domain.txt_record_value} en #{@domain.host}")
+        failure(I18n.t("domain_verification.txt_missing", value: @domain.txt_record_value, host: @domain.host))
       end
     rescue Resolv::ResolvError, Resolv::ResolvTimeout, SocketError => e
-      Result.new(false, "dns_error", "Error al consultar DNS: #{e.class.name.demodulize}")
+      Result.new(false, "dns_error", I18n.t("domain_verification.dns_error", error: e.class.name.demodulize))
     end
 
     def verify_html_file
@@ -55,7 +55,7 @@ class Domain::Verifier
         if response.success? && response.body.strip == @domain.txt_record_value
           success
         else
-          failure("#{response.url} devolvió #{response.status} sin el contenido esperado (#{@domain.txt_record_value})")
+          failure(I18n.t("domain_verification.file_mismatch", url: response.url, status: response.status, value: @domain.txt_record_value))
         end
       end
     end
@@ -66,7 +66,7 @@ class Domain::Verifier
         if response.success? && content == @domain.verification_token
           success
         else
-          failure("No se encontró la etiqueta meta #{META_NAME} con el token en #{response.url}")
+          failure(I18n.t("domain_verification.meta_missing", name: META_NAME, url: response.url))
         end
       end
     end
@@ -78,7 +78,7 @@ class Domain::Verifier
         response = http_client.get("#{scheme}://#{@domain.host}#{path}")
         final_host = URI.parse(response.url).host
         if final_host != @domain.host
-          return failure("#{scheme}://#{@domain.host}#{path} redirige a otro host (#{final_host}); añade ese host como dominio aparte")
+          return failure(I18n.t("domain_verification.cross_host_redirect", url: "#{scheme}://#{@domain.host}#{path}", host: final_host))
         end
 
         return yield(response)
@@ -87,7 +87,7 @@ class Domain::Verifier
       rescue SafeHttp::Errors::Base => e
         errors << "#{scheme}: #{e.message}"
       end
-      Result.new(false, "fetch_error", "No se pudo descargar: #{errors.join("; ")}")
+      Result.new(false, "fetch_error", I18n.t("domain_verification.fetch_error", errors: errors.join("; ")))
     end
 
     def success = Result.new(true, "verified", nil)

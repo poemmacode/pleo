@@ -3,10 +3,7 @@ module Audit
     module StructuredData
       # Rows from Context#structured_data: [page_id, syntax, types, valid_syntax, validation_errors]
       class InvalidJson < PageCheck
-        define key: "schema.invalid_json", category: "structured_data", severity: "error", weight: 6,
-          title: "JSON-LD con errores de sintaxis",
-          description: "Un bloque JSON-LD no se puede leer, así que los buscadores lo ignoran entero.",
-          fix: "Valida el JSON (comas finales, comillas, llaves) y corrige el bloque."
+        define key: "schema.invalid_json", category: "structured_data", severity: "error", weight: 6
 
         def evaluate(page)
           broken = context.structured_data(page.id).reject { _1[3] }
@@ -15,10 +12,7 @@ module Audit
       end
 
       class UnknownType < PageCheck
-        define key: "schema.unknown_type", category: "structured_data", severity: "warning", weight: 3,
-          title: "Tipos de schema.org desconocidos",
-          description: "Se usa un @type que no existe en schema.org (a menudo una errata).",
-          fix: "Corrige el tipo usando el nombre exacto de schema.org (respeta mayúsculas)."
+        define key: "schema.unknown_type", category: "structured_data", severity: "warning", weight: 3
 
         def evaluate(page)
           types = context.structured_data(page.id).flat_map { _1[4] }.select { _1["code"] == "unknown_type" }.map { _1["type"] }
@@ -27,10 +21,7 @@ module Audit
       end
 
       class MissingRequired < PageCheck
-        define key: "schema.missing_required", category: "structured_data", severity: "warning", weight: 4,
-          title: "Faltan propiedades necesarias para resultados enriquecidos",
-          description: "El marcado no incluye propiedades que los buscadores exigen para mostrar resultados enriquecidos de ese tipo.",
-          fix: "Añade las propiedades indicadas en cada tipo."
+        define key: "schema.missing_required", category: "structured_data", severity: "warning", weight: 4
 
         CODES = %w[missing_required missing_one_of].freeze
 
@@ -41,10 +32,7 @@ module Audit
       end
 
       class None < PageCheck
-        define key: "schema.none", category: "structured_data", severity: "notice", weight: 1,
-          title: "Sin datos estructurados",
-          description: "La página no tiene marcado schema.org; podría optar a resultados enriquecidos o ayudar a entender la entidad.",
-          fix: "Añade JSON-LD adecuado al tipo de página (Article, Product, BreadcrumbList, Organization…)."
+        define key: "schema.none", category: "structured_data", severity: "notice", weight: 1
 
         def applies?(page) = super && page.indexable
         def evaluate(page) = context.structured_data(page.id).empty?

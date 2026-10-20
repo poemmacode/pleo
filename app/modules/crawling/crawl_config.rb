@@ -85,48 +85,47 @@ module Crawling
       end
 
       def start_url_in_domain
-        return errors.add(:start_url, "no es una URL http(s) válida") if start_url.blank?
+        return errors.add(:start_url, :invalid_url) if start_url.blank?
 
         host = URI.parse(start_url).host
-        errors.add(:start_url, "debe pertenecer a #{domain.host}") unless Scope.host_within?(host, domain.host)
+        errors.add(:start_url, :outside_domain, host: domain.host) unless Scope.host_within?(host, domain.host)
       end
 
       def within_limits
         unless max_pages.is_a?(Integer) && max_pages.between?(1, limits[:max_pages])
-          errors.add(:max_pages, "debe estar entre 1 y #{limits[:max_pages]}#{unverified_note}")
+          errors.add(:max_pages, limit_error, min: 1, max: limits[:max_pages])
         end
         unless requests_per_second.is_a?(Float) && requests_per_second.between?(MIN_RPS, limits[:max_rps])
-          errors.add(:requests_per_second, "debe estar entre #{MIN_RPS} y #{limits[:max_rps]}#{unverified_note}")
+          errors.add(:requests_per_second, limit_error, min: MIN_RPS, max: limits[:max_rps])
         end
       end
 
-      def unverified_note
-        domain&.verified? ? "" : " (dominio sin verificar)"
-      end
+      # Unverified domains get a message that explains their lower limits.
+      def limit_error = domain&.verified? ? :out_of_range : :out_of_range_unverified
 
       def patterns_valid
         { include_patterns:, exclude_patterns: }.each do |name, patterns|
-          next errors.add(name, "debe ser una lista") unless patterns.is_a?(Array)
-          next errors.add(name, "admite como máximo #{MAX_PATTERNS} patrones") if patterns.size > MAX_PATTERNS
+          next errors.add(name, :not_a_list) unless patterns.is_a?(Array)
+          next errors.add(name, :too_many_patterns, count: MAX_PATTERNS) if patterns.size > MAX_PATTERNS
 
           patterns.each do |pattern|
-            next errors.add(name, "tiene un patrón demasiado largo") if pattern.to_s.length > MAX_PATTERN_LENGTH
+            next errors.add(name, :pattern_too_long, count: MAX_PATTERN_LENGTH) if pattern.to_s.length > MAX_PATTERN_LENGTH
 
             Regexp.new(pattern.to_s, timeout: PATTERN_TIMEOUT)
           rescue RegexpError
-            errors.add(name, "tiene una expresión regular inválida: #{pattern}")
+            errors.add(name, :invalid_regex, pattern:)
           end
         end
       end
 
       def render_js_not_available
-        errors.add(:render_js, "estará disponible en la iteración 1.1") if render_js
+        errors.add(:render_js, :not_available) if render_js
       end
 
       def terms_for_unverified_domain
         return if domain&.verified? || terms_accepted
 
-        errors.add(:terms_accepted, "debes confirmar que los términos del sitio permiten este rastreo")
+        errors.add(:terms_accepted, :required)
       end
   end
 end

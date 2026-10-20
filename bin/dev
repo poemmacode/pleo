@@ -9,7 +9,7 @@ export PATH="$HOME/.asdf/shims:$PATH"
 "$ROOT/bin/db" start
 
 if ! (exec 3<>/dev/tcp/127.0.0.1/6379) 2>/dev/null; then
-  echo "Redis no responde en 127.0.0.1:6379. Arráncalo con 'brew services start redis' o 'docker compose up -d redis'." >&2
+  echo "Redis is not answering on 127.0.0.1:6379. Start it with 'brew services start redis' or 'docker compose up -d redis'." >&2
   exit 1
 fi
 

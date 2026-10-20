@@ -1,229 +1,229 @@
-# Fase 3 — Plan del MVP: crawler de SEO técnico
+# Phase 3 — MVP plan: technical SEO crawler
 
-El MVP es **solo** el módulo de auditoría técnica (más la base: proyectos, dominios, auth). No depende de ninguna API de pago. La única API externa es PageSpeed Insights (gratuita con API key).
+The MVP is **only** the technical audit module (plus the base: projects, domains, auth). It does not depend on any paid API. The only external API is PageSpeed Insights (free with an API key).
 
-## 1. Alcance del MVP
+## 1. MVP scope
 
-Incluido:
-1. Descubrimiento de URLs desde sitemaps (robots.txt, `/sitemap.xml`, índices, `.gz`) y enlaces internos.
-2. Límites configurables: páginas, profundidad, req/s, include/exclude, tamaño máximo de respuesta.
-3. Monitoreo de status HTTP y cadenas de redirección.
-4. Análisis de title y meta description.
-5. Canonical y directivas robots (robots.txt, meta robots, X-Robots-Tag).
-6. Jerarquía de headings.
-7. Enlaces internos, externos y rotos.
-8. Detección de metadatos y contenido duplicados.
-9. Extracción y validación de datos estructurados (JSON-LD, Microdata, RDFa).
-10. Rendimiento y móvil con PageSpeed Insights API (+ CrUX para datos de campo).
-11. Puntuación de salud, priorización e informes exportables (CSV, XLSX, PDF).
-12. Seguridad: robots.txt, términos, presupuesto de crawl, protección SSRF/DNS rebinding.
+Included:
+1. URL discovery from sitemaps (robots.txt, `/sitemap.xml`, indexes, `.gz`) and internal links.
+2. Configurable limits: pages, depth, req/s, include/exclude, maximum response size.
+3. HTTP status monitoring and redirect chains.
+4. Title and meta description analysis.
+5. Canonical and robots directives (robots.txt, meta robots, X-Robots-Tag).
+6. Heading hierarchy.
+7. Internal, external and broken links.
+8. Duplicate metadata and content detection.
+9. Structured data extraction and validation (JSON-LD, Microdata, RDFa).
+10. Performance and mobile with the PageSpeed Insights API (+ CrUX for field data).
+11. Health score, prioritisation and exportable reports (CSV, XLSX, PDF).
+12. Safety: robots.txt, site terms, crawl budget, SSRF / DNS rebinding protection.
 
-Excluido del MVP (fase posterior): render JS con Playwright (diseñado aquí, se implementa en la iteración 1.1), GSC, programación de recrawls, comparación de crawls.
+Excluded from the MVP (later phase): JS rendering with Playwright (designed here, built in iteration 1.1), GSC, scheduled recrawls, crawl comparison.
 
-## 2. Flujo del crawl
+## 2. Crawl flow
+
+The diagram is the original design; the implementation replaced one job per URL with a few "lanes" that each claim URLs from the frontier (ADR 0004), and the JSON API with HTML controllers (ADR 0006).
 
 ```mermaid
 sequenceDiagram
-  participant U as Usuario
-  participant API as Rails API
+  participant U as User
+  participant API as Rails
   participant Q as Sidekiq
   participant H as SafeHttp
-  participant W as Sitio
+  participant W as Site
   U->>API: POST /crawls (config)
-  API->>API: valida config + dominio verificado + SafeHttp.preflight(start_url)
+  API->>API: validate config + verified domain + SafeHttp.preflight(start_url)
   API->>Q: StartCrawlJob
   Q->>H: GET /robots.txt
-  H->>W: (IP validada y fijada)
+  H->>W: (validated, pinned IP)
   Q->>Q: parse robots, crawl-delay, Sitemap:
   Q->>Q: SitemapDiscoveryJob → crawl_urls(source=sitemap)
   Q->>Q: seed start_url → crawl_urls(source=seed)
-  loop mientras haya pending y no se alcance max_pages
-    Q->>Q: FetchPageJob(url) — token bucket por host
-    Q->>H: GET url (sin seguir redirects automáticamente)
+  loop while there are pending URLs and max_pages is not reached
+    Q->>Q: FetchLaneJob — per-host rate limiter
+    Q->>H: GET url (redirects not followed automatically)
     H->>W: request
-    W-->>H: respuesta (≤ max_bytes)
+    W-->>H: response (≤ max_bytes)
     Q->>Q: parse (Nokogiri) → pages, links, structured_data
-    Q->>Q: encola enlaces internos en scope (dedupe por url_hash)
-    Q->>Q: RunChecksJob(page) — checks por página
+    Q->>Q: enqueue in-scope internal links (dedupe by url_hash)
   end
-  Q->>Q: FinalizeCrawlJob: checks de sitio (duplicados, huérfanas, broken links, PageRank interno)
-  Q->>Q: PSI sobre muestra de URLs
-  Q->>Q: ScoreJob → health_score, priority_score
+  Q->>Q: FinalizeCrawlJob: site-wide checks (duplicates, orphans, broken links, internal PageRank)
+  Q->>Q: PSI on a sample of URLs
+  Q->>Q: scoring → health_score, priority_score
   API-->>U: GET /crawls/:id (status=completed)
 ```
 
-### Detalles
+### Details
 
-- **Normalización de URL**: esquema y host en minúsculas, quitar puerto por defecto, quitar fragmento, resolver `.`/`..`, ordenar query params (opcional), eliminar params de tracking configurables (`utm_*`, `gclid`, `fbclid`), IDN → punycode. `url_hash = sha256(url_normalizada)`.
-- **Scope**: `domain` (host y subdominios del dominio registrable — vía Public Suffix List), `subdomain` (host exacto), `subfolder` (host + prefijo de path).
-- **Frontera**: tabla `crawl_urls` con estado; el `FinalizeCrawlJob` se dispara cuando no quedan `pending/fetching` (contador en Redis + verificación SQL).
-- **Redirecciones**: se siguen manualmente (máx. 10), revalidando cada salto con SafeHttp; se guarda `redirect_chain`. Destinos fuera de scope se registran pero no se rastrean.
-- **Tipos de contenido**: HTML se parsea; PDFs/imágenes solo HEAD/estado (para enlaces rotos). `max_page_bytes` por defecto 5 MB; se corta la lectura del socket al superarlo.
-- **Reintentos**: 429/503 → respetar `Retry-After`, backoff exponencial, máx. 3. Si >20 % de respuestas son 429/5xx en una ventana de 1 min, el crawl **reduce a la mitad** la velocidad automáticamente; si persiste, se pausa (`status=paused`, motivo `server_overloaded`).
-- **Timeouts**: connect 5 s, read 15 s, total 30 s por petición.
+- **URL normalisation**: lowercase scheme and host, drop the default port, drop the fragment, resolve `.`/`..`, sort query params (optional), remove configurable tracking params (`utm_*`, `gclid`, `fbclid`), IDN → punycode. `url_hash = sha256(normalised_url)`.
+- **Scope**: `domain` (host and subdomains of the registrable domain — via the Public Suffix List), `subdomain` (exact host), `subfolder` (host + path prefix).
+- **Frontier**: `crawl_urls` table with a state; `FinalizeCrawlJob` fires when nothing is left `pending/fetching`.
+- **Redirects**: followed manually (max. 10), re-validating each hop with SafeHttp; `redirect_chain` is stored. Out-of-scope targets are recorded but not crawled.
+- **Content types**: HTML is parsed; PDFs/images only HEAD/status (for broken links). `max_page_bytes` defaults to 5 MB; reading from the socket stops once it is exceeded.
+- **Retries**: 429/503 → honour `Retry-After`, exponential backoff, max. 3. If >20 % of responses are 429/5xx in a 1-minute window, the crawl automatically **halves** its rate; if it keeps happening, it pauses (`status=paused`, reason `server_overloaded`).
+- **Timeouts**: connect 5 s, read 15 s, 30 s total per request.
 
-## 3. Seguridad del crawler
+## 3. Crawler safety
 
-### 3.1 Política de crawl responsable
+### 3.1 Responsible crawling policy
 
-| Regla | Implementación |
+| Rule | Implementation |
 |---|---|
-| robots.txt | Parser propio conforme a **RFC 9309** (agrupación por UA, `Allow`/`Disallow` con longest-match, `*` y `$`). Si robots.txt devuelve 5xx o timeout → no se rastrea (se trata como "disallow all") y se informa. 4xx → se permite todo, como dice la RFC. Cache de robots ≤ 24 h. **No es desactivable.** |
-| Crawl-delay | Si está presente, `rps_efectivo = min(rps_config, 1/crawl_delay)`. |
-| User-Agent | Identificable: `SEOPlatformBot/0.1 (+https://<dominio-propio>/bot; uso personal)`. Se evalúa robots.txt con el token `SEOPlatformBot` y con `*`. En modo "móvil" el UA añade un token móvil, pero el token del bot se mantiene. Nunca se suplanta Googlebot. |
-| Dominios verificados | Crawl completo solo de dominios con propiedad verificada (DNS TXT, archivo HTML, meta tag o propiedad GSC). Dominios no verificados (competidores, top-10 de SERP): máx. 2 000 páginas, 2 req/s, sin render JS (antes 200 páginas a 0,5 req/s; ampliado el 2026-10-20 a petición del usuario, ver ADR 0004). |
-| Presupuesto | Límites duros globales: máx. 50 000 páginas/crawl, 10 req/s, 2 crawls concurrentes por usuario, 1 crawl activo por host. |
-| Términos del sitio | Checkbox obligatorio al crear un crawl de dominio no verificado ("he revisado que los términos del sitio permiten este acceso"). No se usan proxies rotativos, no se resuelven CAPTCHAs, no se evaden bloqueos: un 403/CAPTCHA detectado se registra como tal y se **detiene** el crawl de ese host. |
-| `noindex`/`nofollow` | Se respetan para la *decisión de seguir enlaces* solo si el usuario lo elige (por defecto un auditor sí sigue `nofollow` internos para detectarlos; configurable). |
+| robots.txt | Own parser following **RFC 9309** (grouping by UA, `Allow`/`Disallow` with longest match, `*` and `$`). If robots.txt returns 5xx or times out → nothing is crawled (treated as "disallow all") and this is reported. 4xx → everything is allowed, as the RFC says. robots cache ≤ 24 h. **Cannot be switched off.** |
+| Crawl-delay | If present, `effective_rps = min(configured_rps, 1/crawl_delay)`. |
+| User-Agent | Identifiable: `SEOPlatformBot/0.1 (+https://<own-domain>/bot; personal use)`. robots.txt is evaluated for the `SEOPlatformBot` token and for `*`. In "mobile" mode the UA adds a mobile token, but the bot token stays. Googlebot is never impersonated. |
+| Verified domains | Full crawls only for domains with verified ownership (DNS TXT, HTML file, meta tag or GSC property). Unverified domains (competitors, SERP top 10): max. 2,000 pages, 2 req/s, no JS rendering (previously 200 pages at 0.5 req/s; raised on 2026-10-20 at the user's request, see ADR 0004). |
+| Budget | Hard global limits: max. 50,000 pages per crawl, 10 req/s, 2 concurrent crawls per user, 1 active crawl per host. |
+| Site terms | Mandatory checkbox when creating a crawl for an unverified domain ("I have checked that the site's terms allow this access"). No rotating proxies, no CAPTCHA solving, no evading blocks: a detected 403/CAPTCHA is recorded as such and the crawl of that host **stops**. |
+| `noindex`/`nofollow` | Honoured for the *decision to follow links* only if the user chooses so (by default an auditor does follow internal `nofollow` links in order to detect them; configurable). |
 
-### 3.2 Protección SSRF
+### 3.2 SSRF protection
 
-Todas las peticiones salientes (crawler, sitemaps, robots, futuras funciones de "probar URL") pasan por `SafeHttp`. Pasos por petición y **por cada salto de redirección**:
+Every outbound request (crawler, sitemaps, robots, future "test this URL" features) goes through `SafeHttp`. Steps for each request and **for each redirect hop**:
 
-1. **Parseo estricto** con `Addressable::URI`: solo `http`/`https`; rechazar userinfo (`user:pass@`), hosts vacíos, caracteres de control y espacios.
-2. **Puertos**: solo 80 y 443 (lista configurable por admin, nunca por usuario final).
-3. **Host literal IP**: normalizar con `IPAddr` (detecta formas decimal `2130706433`, octal `0177.0.0.1`, hex `0x7f.1`, IPv4-mapeada `::ffff:127.0.0.1`, NAT64 `64:ff9b::/96`) y aplicar la lista de bloqueo.
-4. **Resolución DNS propia** (`Resolv::DNS`, timeout 3 s), obteniendo **todas** las A y AAAA. Si **alguna** está en la lista de bloqueo → rechazar (evita respuestas mixtas).
-5. **Lista de bloqueo** (IPv4/IPv6):
-   - `0.0.0.0/8`, `10.0.0.0/8`, `100.64.0.0/10` (CGNAT), `127.0.0.0/8`, `169.254.0.0/16` (incluye `169.254.169.254`, metadatos AWS/GCP/Azure, y `169.254.170.2` de ECS), `172.16.0.0/12`, `192.0.0.0/24`, `192.0.2.0/24`, `192.88.99.0/24`, `192.168.0.0/16`, `198.18.0.0/15`, `198.51.100.0/24`, `203.0.113.0/24`, `224.0.0.0/4`, `240.0.0.0/4`, `255.255.255.255/32`.
-   - `::/128`, `::1/128`, `::ffff:0:0/96` (se re-evalúa la IPv4 embebida), `64:ff9b::/96`, `100::/64`, `2001:db8::/32`, `fc00::/7` (incluye `fd00:ec2::254`, metadatos IPv6 de EC2), `fe80::/10`, `ff00::/8`.
-   - Hostnames: `localhost`, `*.localhost`, `*.local`, `*.internal`, `metadata`, `metadata.google.internal`, `instance-data`, y los nombres de servicio internos del despliegue (`postgres`, `redis`, `renderer`…).
-6. **Fijar la IP (anti DNS rebinding)**: la conexión TCP se abre **a la IP ya validada**, no al hostname; se envía `Host:` original y SNI con el hostname para TLS, y se verifica el certificado contra el hostname. Así un segundo lookup malicioso con TTL 0 no tiene efecto.
-7. **Sin proxies de entorno** (`HTTP_PROXY` ignorado) y sin seguir redirects automáticamente (los maneja el paso de redirección, que repite 1–6).
-8. **Límites**: tamaño de respuesta, tiempo total, nº de redirecciones, descompresión limitada (protección contra *zip bombs*: ratio máx. 100:1 y tope absoluto).
-9. **Registro**: todo rechazo se guarda como `skip_reason=unsafe_host` con la IP resuelta, para auditoría.
+1. **Strict parsing** with `Addressable::URI`: only `http`/`https`; reject userinfo (`user:pass@`), empty hosts, control characters and spaces.
+2. **Ports**: only 80 and 443 (list configurable by the admin, never by the end user).
+3. **IP literal host**: normalise with `IPAddr` (catches decimal `2130706433`, octal `0177.0.0.1`, hex `0x7f.1`, IPv4-mapped `::ffff:127.0.0.1`, NAT64 `64:ff9b::/96`) and apply the block list.
+4. **Own DNS resolution** (`Resolv::DNS`, 3 s timeout), getting **all** A and AAAA records. If **any** of them is on the block list → reject (prevents mixed answers).
+5. **Block list** (IPv4/IPv6):
+   - `0.0.0.0/8`, `10.0.0.0/8`, `100.64.0.0/10` (CGNAT), `127.0.0.0/8`, `169.254.0.0/16` (includes `169.254.169.254`, AWS/GCP/Azure metadata, and ECS's `169.254.170.2`), `172.16.0.0/12`, `192.0.0.0/24`, `192.0.2.0/24`, `192.88.99.0/24`, `192.168.0.0/16`, `198.18.0.0/15`, `198.51.100.0/24`, `203.0.113.0/24`, `224.0.0.0/4`, `240.0.0.0/4`, `255.255.255.255/32`.
+   - `::/128`, `::1/128`, `::ffff:0:0/96` (the embedded IPv4 is re-evaluated), `64:ff9b::/96`, `100::/64`, `2001:db8::/32`, `fc00::/7` (includes `fd00:ec2::254`, EC2's IPv6 metadata), `fe80::/10`, `ff00::/8`.
+   - Hostnames: `localhost`, `*.localhost`, `*.local`, `*.internal`, `metadata`, `metadata.google.internal`, `instance-data`, and the deployment's internal service names (`postgres`, `redis`, `renderer`…).
+6. **Pin the IP (anti DNS rebinding)**: the TCP connection is opened **to the already validated IP**, not to the hostname; the original `Host:` and the hostname as SNI are sent for TLS, and the certificate is verified against the hostname. A second malicious lookup with TTL 0 therefore has no effect.
+7. **No environment proxies** (`HTTP_PROXY` ignored) and redirects are never followed automatically (the redirect step handles them, repeating 1–6).
+8. **Limits**: response size, total time, number of redirects, bounded decompression (protection against *zip bombs*: max. ratio 100:1 and an absolute cap).
+9. **Logging**: every rejection is stored as `skip_reason=unsafe_host` with the resolved IP, for auditing.
 
-**Defensa en profundidad (infraestructura)**: IMDSv2 obligatorio con hop limit 1; security group / NACL del worker y del renderer que **deniega egress** a `10/8`, `172.16/12`, `192.168/16`, `169.254/16` y a la subred de datos; el renderer sale a internet solo por **Smokescreen**, que aplica la misma política al hacer el CONNECT (resuelve y valida la IP en el momento de conectar).
+**Defence in depth (infrastructure)**: IMDSv2 required with hop limit 1; worker and renderer security group / NACL that **denies egress** to `10/8`, `172.16/12`, `192.168/16`, `169.254/16` and the data subnet; the renderer reaches the internet only through **Smokescreen**, which applies the same policy on CONNECT (resolving and validating the IP at connect time).
 
-**Renderer (Playwright, iteración 1.1)**: contenedor sin credenciales AWS, sin acceso a Postgres/Redis, Chromium con `--proxy-server=smokescreen`, `page.route('**/*')` que aborta esquemas no http(s) y `file:`/`data:` de nivel superior, timeouts, un contexto por página, sin descargas, y bloqueo de WebSockets/WebRTC (`--force-webrtc-ip-handling-policy=disable_non_proxied_udp`).
+**Renderer (Playwright, iteration 1.1)**: container without AWS credentials, no access to Postgres/Redis, Chromium with `--proxy-server=smokescreen`, a `page.route('**/*')` that aborts non-http(s) schemes and top-level `file:`/`data:`, timeouts, one context per page, no downloads, and WebSockets/WebRTC blocked (`--force-webrtc-ip-handling-policy=disable_non_proxied_udp`).
 
-### 3.3 Tests de seguridad obligatorios (RSpec)
+### 3.3 Mandatory security tests (RSpec)
 
-Tabla de casos que deben **rechazarse**: `http://127.0.0.1`, `http://2130706433`, `http://0177.0.0.1`, `http://0x7f.0.0.1`, `http://[::1]`, `http://[::ffff:127.0.0.1]`, `http://169.254.169.254/latest/meta-data/`, `http://[fd00:ec2::254]`, `http://metadata.google.internal`, `http://localhost.`, `http://foo.localhost`, `http://user:pass@example.com`, `gopher://`, `file:///etc/passwd`, `http://example.com:6379`, un host cuyo DNS devuelve una IP pública y otra privada, un redirect 302 de un sitio público a `http://10.0.0.1`, y un **rebinding** simulado (resolver stub que devuelve IP pública en el primer lookup y `127.0.0.1` en el segundo: la petición debe ir a la IP pública validada).
+Cases that must be **rejected**: `http://127.0.0.1`, `http://2130706433`, `http://0177.0.0.1`, `http://0x7f.0.0.1`, `http://[::1]`, `http://[::ffff:127.0.0.1]`, `http://169.254.169.254/latest/meta-data/`, `http://[fd00:ec2::254]`, `http://metadata.google.internal`, `http://localhost.`, `http://foo.localhost`, `http://user:pass@example.com`, `gopher://`, `file:///etc/passwd`, `http://example.com:6379`, a host whose DNS returns one public and one private IP, a 302 redirect from a public site to `http://10.0.0.1`, and a simulated **rebinding** (a stub resolver returning a public IP on the first lookup and `127.0.0.1` on the second: the request must go to the validated public IP).
 
-## 4. Extracción por página
+## 4. Per-page extraction
 
-| Campo | Fuente |
+| Field | Source |
 |---|---|
-| status, headers, tiempos, redirect chain | respuesta HTTP |
+| status, headers, timings, redirect chain | HTTP response |
 | title, meta description, meta robots, canonical, hreflang, lang, viewport, charset, OG/Twitter | `<head>` |
 | X-Robots-Tag, Link: rel=canonical | headers |
-| headings H1–H6 en orden | DOM |
-| enlaces (`a[href]`, `link[href]`, `img[src]`, `script[src]`), anchor, `rel` | DOM, resueltos contra `<base>` |
-| texto visible, word count, simhash 64-bit | DOM sin script/style/nav (heurística) |
-| datos estructurados | `script[type="application/ld+json"]`, `itemscope/itemprop`, `typeof/property` |
-| imágenes sin `alt`, tamaño | DOM |
-| mixed content | recursos `http:` en página `https:` |
+| H1–H6 headings in order | DOM |
+| links (`a[href]`, `link[href]`, `img[src]`, `script[src]`), anchor, `rel` | DOM, resolved against `<base>` |
+| visible text, word count, 64-bit simhash | DOM without script/style/nav (heuristic) |
+| structured data | `script[type="application/ld+json"]`, `itemscope/itemprop`, `typeof/property` |
+| images without `alt`, size | DOM |
+| mixed content | `http:` resources on an `https:` page |
 
-## 5. Catálogo de checks del MVP (propio)
+## 5. MVP check catalogue (own)
 
-Severidad: **E** error, **W** warning, **N** notice. Peso 1–10 (usado en score y prioridad).
+Severity: **E** error, **W** warning, **N** notice. Weight 1–10 (used for score and priority). This is the original design; the implemented catalogue (58 checks) lives in `Audit::Catalog`, and the user-facing texts in `config/locales/checks.{en,es}.yml`.
 
-| Categoría | Key | Sev | Peso | Regla |
+| Category | Key | Sev | Weight | Rule |
 |---|---|---|---|---|
-| Rastreabilidad | `http.4xx` | E | 9 | página interna enlazada con 4xx |
+| Crawlability | `http.4xx` | E | 9 | linked internal page returning 4xx |
 | | `http.5xx` | E | 10 | 5xx |
-| | `http.timeout` | E | 7 | sin respuesta en el tiempo límite |
-| | `redirect.chain` | W | 4 | >1 salto |
-| | `redirect.loop` | E | 8 | bucle |
-| | `redirect.temporary` | N | 2 | 302/307 en enlaces internos |
-| | `robots.blocked_internal_linked` | W | 4 | URL enlazada internamente pero bloqueada por robots.txt |
-| | `sitemap.non_200` | W | 5 | URL del sitemap que no da 200 |
-| | `sitemap.noindex` | W | 5 | URL del sitemap no indexable |
-| | `sitemap.missing` | W | 3 | no hay sitemap descubrible |
-| | `page.orphan` | W | 4 | en sitemap pero sin enlaces internos entrantes |
-| | `page.deep` | N | 2 | profundidad > 4 clics |
-| Indexabilidad | `robots.noindex` | N | 1 | noindex (informativo; se marca W si está en sitemap) |
-| | `canonical.missing` | N | 2 | sin canonical |
-| | `canonical.to_non200` | E | 7 | canonical apunta a 3xx/4xx/5xx |
-| | `canonical.to_noindex` | E | 7 | canonical apunta a página noindex |
-| | `canonical.multiple` | E | 6 | más de un canonical (head + header incluidos) en conflicto |
-| | `canonical.relative_or_invalid` | W | 3 | canonical inválido o relativo |
-| | `canonical.chain` | W | 4 | canonical → página con otro canonical |
-| | `hreflang.no_return` | W | 4 | falta enlace recíproco |
-| | `hreflang.invalid_code` | W | 4 | código ISO inválido |
-| Metadatos | `title.missing` | E | 8 | sin title o vacío |
-| | `title.duplicate` | E | 6 | mismo title en ≥2 páginas indexables |
-| | `title.too_long` | W | 2 | > 60 caracteres (aprox. ~580 px) |
-| | `title.too_short` | N | 1 | < 15 caracteres |
-| | `title.multiple` | W | 3 | más de un `<title>` |
-| | `meta_description.missing` | W | 3 | sin meta description |
-| | `meta_description.duplicate` | W | 4 | duplicada entre páginas indexables |
-| | `meta_description.length` | N | 1 | <70 o >160 caracteres |
-| Contenido | `h1.missing` | W | 4 | sin H1 |
-| | `h1.multiple` | N | 1 | varios H1 |
-| | `headings.skipped_level` | N | 1 | salto de nivel (H2 → H4) |
-| | `h1.equals_title` | N | 1 | informativo |
-| | `content.thin` | W | 3 | < 200 palabras en página indexable (umbral configurable) |
-| | `content.duplicate` | W | 5 | simhash con distancia de Hamming ≤ 3 entre páginas indexables |
-| | `images.missing_alt` | W | 2 | imágenes sin `alt` |
-| Enlaces | `links.internal_broken` | E | 9 | enlace interno a 4xx/5xx |
-| | `links.external_broken` | W | 3 | enlace externo roto (verificación con HEAD, limitada a 1 por host/s) |
-| | `links.internal_nofollow` | W | 3 | `nofollow` en enlace interno |
-| | `links.to_redirect` | N | 2 | enlace interno a URL que redirige |
-| | `links.too_many` | N | 1 | > 300 enlaces en la página |
-| Datos estructurados | `schema.invalid_json` | E | 6 | JSON-LD no parseable |
-| | `schema.unknown_type` | W | 3 | `@type` no existe en el vocabulario schema.org |
-| | `schema.missing_required` | W | 4 | faltan propiedades requeridas para resultados enriquecidos (reglas propias derivadas de la documentación pública de Google Search Central: Article, Product, BreadcrumbList, FAQPage, Organization, LocalBusiness, Event, Recipe…) |
-| | `schema.none` | N | 1 | página sin datos estructurados |
-| HTTPS | `https.not_used` | E | 8 | página servida por http |
-| | `https.mixed_content` | W | 5 | recursos http en página https |
-| | `https.http_links` | N | 2 | enlaces internos a versión http |
-| | `https.cert_invalid` | E | 9 | certificado inválido/expirado |
-| Móvil | `mobile.viewport_missing` | W | 5 | sin meta viewport |
-| Rendimiento | `perf.lcp_poor` | W | 5 | LCP > 4 s (PSI) |
-| | `perf.cls_poor` | W | 4 | CLS > 0,25 |
-| | `perf.inp_poor` | W | 4 | INP > 500 ms (CrUX, si existe) |
-| | `perf.score_low` | N | 2 | score Lighthouse < 50 |
-| | `perf.slow_response` | N | 2 | descarga del HTML por el crawler > 1,5 s (antes `perf.slow_ttfb`; ver ADR 0005) |
+| | `http.timeout` | E | 7 | no response within the time limit |
+| | `redirect.chain` | W | 4 | >1 hop |
+| | `redirect.loop` | E | 8 | loop |
+| | `redirect.temporary` | N | 2 | 302/307 on internal links |
+| | `robots.blocked_internal_linked` | W | 4 | URL linked internally but blocked by robots.txt |
+| | `sitemap.non_200` | W | 5 | sitemap URL that does not return 200 |
+| | `sitemap.noindex` | W | 5 | sitemap URL that is not indexable |
+| | `sitemap.missing` | W | 3 | no discoverable sitemap |
+| | `page.orphan` | W | 4 | in the sitemap but with no inbound internal links |
+| | `page.deep` | N | 2 | depth > 4 clicks |
+| Indexability | `robots.noindex` | N | 1 | noindex (informational; W if it is in the sitemap) |
+| | `canonical.missing` | N | 2 | no canonical |
+| | `canonical.to_non200` | E | 7 | canonical points to 3xx/4xx/5xx |
+| | `canonical.to_noindex` | E | 7 | canonical points to a noindex page |
+| | `canonical.multiple` | E | 6 | more than one conflicting canonical (head and header included) |
+| | `canonical.relative_or_invalid` | W | 3 | invalid or relative canonical |
+| | `canonical.chain` | W | 4 | canonical → page with another canonical |
+| | `hreflang.no_return` | W | 4 | missing reciprocal link |
+| | `hreflang.invalid_code` | W | 4 | invalid ISO code |
+| Metadata | `title.missing` | E | 8 | no title or empty |
+| | `title.duplicate` | E | 6 | same title on ≥2 indexable pages |
+| | `title.too_long` | W | 2 | > 60 characters (≈ 580 px) |
+| | `title.too_short` | N | 1 | < 15 characters |
+| | `title.multiple` | W | 3 | more than one `<title>` |
+| | `meta_description.missing` | W | 3 | no meta description |
+| | `meta_description.duplicate` | W | 4 | duplicated across indexable pages |
+| | `meta_description.length` | N | 1 | <70 or >160 characters |
+| Content | `h1.missing` | W | 4 | no H1 |
+| | `h1.multiple` | N | 1 | several H1s |
+| | `headings.skipped_level` | N | 1 | skipped level (H2 → H4) |
+| | `h1.equals_title` | N | 1 | informational |
+| | `content.thin` | W | 3 | < 200 words on an indexable page (configurable threshold) |
+| | `content.duplicate` | W | 5 | simhash Hamming distance ≤ 3 between indexable pages |
+| | `images.missing_alt` | W | 2 | images without `alt` |
+| Links | `links.internal_broken` | E | 9 | internal link to 4xx/5xx |
+| | `links.external_broken` | W | 3 | broken external link (HEAD check, limited to 1 per host per second) |
+| | `links.internal_nofollow` | W | 3 | `nofollow` on an internal link |
+| | `links.to_redirect` | N | 2 | internal link to a redirecting URL |
+| | `links.too_many` | N | 1 | > 300 links on the page |
+| Structured data | `schema.invalid_json` | E | 6 | unparseable JSON-LD |
+| | `schema.unknown_type` | W | 3 | `@type` not in the schema.org vocabulary |
+| | `schema.missing_required` | W | 4 | properties required for rich results are missing (own rules derived from Google Search Central's public documentation: Article, Product, BreadcrumbList, FAQPage, Organization, LocalBusiness, Event, Recipe…) |
+| | `schema.none` | N | 1 | page without structured data |
+| HTTPS | `https.not_used` | E | 8 | page served over http |
+| | `https.mixed_content` | W | 5 | http resources on an https page |
+| | `https.http_links` | N | 2 | internal links to the http version |
+| | `https.cert_invalid` | E | 9 | invalid/expired certificate |
+| Mobile | `mobile.viewport_missing` | W | 5 | no meta viewport |
+| Performance | `perf.lcp_poor` | W | 5 | LCP > 4 s (PSI) |
+| | `perf.cls_poor` | W | 4 | CLS > 0.25 |
+| | `perf.inp_poor` | W | 4 | INP > 500 ms (CrUX, if available) |
+| | `perf.score_low` | N | 2 | Lighthouse score < 50 |
+| | `perf.slow_response` | N | 2 | HTML download by the crawler > 1.5 s (formerly `perf.slow_ttfb`; see ADR 0005) |
 | | `page.too_large` | N | 2 | HTML > 2 MB |
-| GEO / AI search | `ai.bots_blocked` | W | 3 | robots.txt bloquea bots de IA relevantes (lista mantenida en config, informativo: puede ser intencional) |
-| | `ai.llms_txt_missing` | N | 1 | sin `/llms.txt` (estándar propuesto, impacto no garantizado) |
-| | `ai.content_requires_js` | W | 4 | (con render JS) texto visible renderizado ≫ texto en HTML crudo |
+| GEO / AI search | `ai.bots_blocked` | W | 3 | robots.txt blocks relevant AI bots (list kept in config; informational: it may be intentional) |
+| | `ai.llms_txt_missing` | N | 1 | no `/llms.txt` (proposed standard, impact not guaranteed) |
+| | `ai.content_requires_js` | W | 4 | (with JS rendering) rendered visible text ≫ text in the raw HTML |
 
-Los textos de "cómo arreglarlo" se redactan desde cero en español; no se copian descripciones de terceros.
+The "how to fix it" texts are written from scratch in English and Spanish; no third-party descriptions are copied.
 
-## 6. Puntuación y priorización (fórmulas propias)
+## 6. Scoring and prioritisation (own formulas)
 
-Implementadas en `Audit::Scoring`. La versión definitiva y su justificación están en [ADR 0007](adr/0007-puntuacion-y-prioridad.md):
+Implemented in `Audit::Scoring`. The final version and its rationale are in [ADR 0007](adr/0007-scoring-and-priority.md):
 
 ```
-cobertura    = 1 si el check es de sitio entero; si no, min(1, páginas afectadas / páginas rastreadas)
-penalización = peso × factor (error/aviso 1, nota 0,25) × √cobertura
-categoría    = 100 × (1 − Σ penalización / Σ peso × factor)
-salud        = Σ categoría × peso de categoría / 100
-prioridad    = 10 × peso × factor × (0,5 × cobertura + 0,5 × importancia de la página)
+coverage = 1 if the check is site-wide; otherwise min(1, affected pages / crawled pages)
+penalty  = weight × factor (error/warning 1, notice 0.25) × √coverage
+category = 100 × (1 − Σ penalty / Σ weight × factor)
+health   = Σ category × category weight / 100
+priority = 10 × weight × factor × (0.5 × coverage + 0.5 × page importance)
 ```
 
-Pesos de categoría: rastreabilidad 22, indexabilidad 18, enlaces 14, metadatos 14, contenido 10, HTTPS 6, datos estructurados 5, móvil 5, rendimiento 3 y búsqueda con IA 3. La importancia de una página es su PageRank interno relativo al máximo (o, en su defecto, sus enlaces entrantes); cuando haya GSC se combinará con impresiones.
+Category weights: crawlability 22, indexability 18, links 14, metadata 14, content 10, HTTPS 6, structured data 5, mobile 5, performance 3 and AI search 3. A page's importance is its internal PageRank relative to the maximum (or, failing that, its inbound links); once GSC is available it will be combined with impressions.
 
-## 7. Rendimiento con PageSpeed Insights
+## 7. Performance with PageSpeed Insights
 
-- Muestra: home + top-N URLs por PageRank interno (por defecto 20), una por plantilla de URL detectada (agrupación por patrón de path), `strategy=mobile` y opcionalmente `desktop`.
-- Llamada: `GET https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=…&strategy=mobile&category=performance&category=seo&category=accessibility&key=…`. Se guardan LCP, CLS, TBT, FCP, TTFB, score y oportunidades; si la respuesta incluye `loadingExperience` (CrUX), también INP/LCP/CLS de campo (p75).
-- Rate limit interno: 1 req/s y máx. diario configurable (la cuota gratuita es amplia; ver 05).
-- PSI ejecuta Lighthouse en servidores de Google contra la URL pública → no hay riesgo SSRF propio, pero solo funciona con URLs públicas.
+- Sample: home page + top-N URLs by internal PageRank (20 by default), one per detected URL template (grouping by path pattern), `strategy=mobile` and optionally `desktop`.
+- Call: `GET https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=…&strategy=mobile&category=performance&category=seo&category=accessibility&key=…`. LCP, CLS, TBT, FCP, TTFB, score and opportunities are stored; if the response includes `loadingExperience` (CrUX), field INP/LCP/CLS (p75) as well.
+- Internal rate limit: 1 req/s and a configurable daily maximum (the free quota is generous; see 05).
+- PSI runs Lighthouse on Google's servers against the public URL → no SSRF risk on our side, but it only works with public URLs.
 
-## 8. Informes exportables
+## 8. Exportable reports
 
-- **CSV**: páginas (todas las columnas), issues (check × URL), enlaces rotos, duplicados.
-- **XLSX** (`caxlsx`): pestañas Resumen, Issues priorizados, Páginas, Enlaces rotos, Duplicados, Schema, Rendimiento.
-- **PDF** (HTML → PDF con Grover/Playwright en el renderer, o `prawn`): resumen ejecutivo con health score, top-10 issues por prioridad con explicación y "cómo arreglarlo", gráficos por categoría, y comparación con el crawl anterior si existe.
-- Generación asíncrona; descarga por URL prefirmada de corta duración.
+- **CSV**: pages (all columns), issues (check × URL), broken links, duplicates.
+- **XLSX** (`caxlsx`): Summary, Prioritised issues, Pages, Broken links, Duplicates, Schema and Performance sheets.
+- **PDF** (HTML → PDF with Grover/Playwright in the renderer, or `prawn`): executive summary with the health score, top-10 issues by priority with explanation and "how to fix it", per-category charts, and comparison with the previous crawl if there is one.
+- Generated asynchronously; downloaded through a short-lived URL. *Implemented with Prawn and owner-only downloads; reports are written in the language of the user who requested them (ADR 0009, ADR 0010).*
 
-## 9. Frontend del MVP
+## 9. MVP frontend
 
-Pantallas: Login · Proyectos · Dominio (verificación) · Nuevo crawl (formulario con límites) · Progreso del crawl (polling cada 3 s) · Resumen de auditoría (score, categorías, top issues) · Lista de issues → páginas afectadas · Explorador de páginas (tabla filtrable) · Detalle de página · Duplicados · Rendimiento · Exportaciones.
+Screens: Sign in · Projects · Domain (verification) · New crawl (form with limits) · Crawl progress (live via Turbo Streams) · Audit summary (score, categories, top issues) · Issue list → affected pages · Page explorer (filterable table) · Page detail · Duplicates · Performance · Exports. The interface is in English by default, with Spanish available from the top bar (ADR 0010).
 
-## 10. Estrategia de pruebas
+## 10. Testing strategy
 
-| Nivel | Herramientas | Qué cubre |
+| Level | Tools | What it covers |
 |---|---|---|
-| Unitarias | RSpec | SafeHttp (tabla SSRF), parser robots.txt (casos de la RFC 9309), normalización de URL, cada check con HTML fixture, simhash, fórmulas de score |
-| Integración | RSpec + **sitio fixture local** (Rack app con páginas, redirects, 404, sitemap, robots) + WebMock para PSI | Crawl completo de punta a punta → issues esperados exactos |
-| Request specs | RSpec + rswag | Contratos API y OpenAPI generado |
-| Frontend | Vitest + Testing Library + MSW | Componentes y hooks con API mockeada |
-| E2E | Playwright Test | Crear proyecto → crawl del sitio fixture → ver issues → exportar CSV |
-| Seguridad | RSpec + `brakeman` + `bundler-audit` + `npm audit` en CI | |
+| Unit | RSpec | SafeHttp (SSRF table), robots.txt parser (RFC 9309 cases), URL normalisation, each check with an HTML fixture, simhash, score formulas |
+| Integration | RSpec + **local fixture site** (Rack app with pages, redirects, 404, sitemap, robots) + WebMock for PSI | End-to-end crawl → exact expected issues |
+| Request specs | RSpec | HTML controllers: user isolation, sign-in redirects, 422 forms, limits, locale switching |
+| System specs | Capybara + Cuprite | Sign in, projects and domains, crawl form, live progress, issues, language switch |
+| Security | RSpec + `brakeman` + `bundler-audit` + `importmap audit` in CI | |
 
-Nota: el sitio fixture corre en localhost, lo que SafeHttp bloquea. En `test` se inyecta un resolver/allowlist explícito solo para el host del fixture; esta excepción no existe en ningún otro entorno (verificado por un spec).
+Note: the fixture site runs on localhost, which SafeHttp blocks. In `test` an explicit resolver/allowlist is injected for the fixture host only; that exception does not exist in any other environment (checked by a spec).

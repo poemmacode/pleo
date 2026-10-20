@@ -1,66 +1,66 @@
-# Despliegue en Render (plan gratuito)
+# Deploying to Render (free plan)
 
-El repositorio incluye un Blueprint, [`render.yaml`](../render.yaml), que crea tres recursos gratuitos:
+The repository includes a Blueprint, [`render.yaml`](../render.yaml), that creates three free resources:
 
-| Recurso | Qué es |
+| Resource | What it is |
 |---|---|
-| `seo-platform` (web, `free`) | Puma con **Sidekiq embebido** (`SIDEKIQ_EMBEDDED=true`). El plan gratuito no tiene workers. |
-| `seo-platform-db` (Postgres, `free`) | Base de datos. |
-| `seo-platform-kv` (Key Value, `free`) | Redis para Sidekiq, Action Cable y el límite de velocidad por host. |
+| `seo-platform` (web, `free`) | Puma with **embedded Sidekiq** (`SIDEKIQ_EMBEDDED=true`). The free plan has no workers. |
+| `seo-platform-db` (Postgres, `free`) | Database. |
+| `seo-platform-kv` (Key Value, `free`) | Redis for Sidekiq, Action Cable and the per-host rate limiter. |
 
-## Pasos
+## Steps
 
-1. **Sube el repositorio a GitHub** (o GitLab). Render despliega desde un repositorio remoto. Hoy el repo no tiene remoto:
+1. **Push the repository to GitHub** (or GitLab). Render deploys from a remote repository:
 
    ```bash
-   git remote add origin git@github.com:TU_USUARIO/seo-platform.git
+   git remote add origin git@github.com:YOUR_USER/seo-platform.git
    ```
 
    ```bash
    git push -u origin main
    ```
 
-   Puede ser privado; Render pedirá acceso a él. `config/master.key` está en `.gitignore` y **no** se sube.
-2. En Render: **New → Blueprint**, elige el repositorio y la rama `main`. Render leerá `render.yaml` y pedirá tres valores secretos:
-   - `RAILS_MASTER_KEY`: el contenido de `config/master.key` (sin saltos de línea).
-   - `ADMIN_EMAIL` y `ADMIN_PASSWORD`: tu usuario, con una contraseña de al menos 12 caracteres. En cada arranque `bin/rails users:ensure` lo crea, o le actualiza la contraseña si la cambias aquí. Lo hacemos así porque el plan gratuito no tiene Shell.
-3. Pulsa **Apply**. El build ejecuta `bundle install` y `assets:precompile`. El arranque ejecuta `db:prepare`, `users:ensure` y Puma.
-4. Abre `https://seo-platform.onrender.com` (o el nombre que asigne Render) e inicia sesión.
+   It can be private; Render will ask for access to it. `config/master.key` is in `.gitignore` and is **not** pushed.
+2. In Render: **New → Blueprint**, pick the repository and the `main` branch. Render reads `render.yaml` and asks for three secret values:
+   - `RAILS_MASTER_KEY`: the contents of `config/master.key` (no line breaks).
+   - `ADMIN_EMAIL` and `ADMIN_PASSWORD`: your user, with a password of at least 12 characters. On every boot `bin/rails users:ensure` creates it, or updates its password if you change it here. It works this way because the free plan has no Shell.
+3. Click **Apply**. The build runs `bundle install` and `assets:precompile`. Boot runs `db:prepare`, `users:ensure` and Puma.
+4. Open `https://seo-platform.onrender.com` (or whatever name Render assigns) and sign in. The interface is in English; switch to Spanish with the **ES** button in the top bar (the choice is saved on your user).
 
-Las variables `RENDER_EXTERNAL_URL`, `DATABASE_URL` y `REDIS_URL` las pone Render. El User-Agent del bot enlaza a `/bot`, una página pública que explica qué hace y cómo bloquearlo.
+Render sets `RENDER_EXTERNAL_URL`, `DATABASE_URL` and `REDIS_URL`. The bot's User-Agent links to `/bot`, a public page explaining what it does and how to block it.
 
-## PageSpeed Insights (rendimiento y Core Web Vitals)
+## PageSpeed Insights (performance and Core Web Vitals)
 
-La auditoría mide el rendimiento móvil de una muestra de páginas con la API de PageSpeed Insights. La API sin key tiene una cuota anónima compartida que suele estar agotada, así que hace falta una **API key gratuita de Google**:
+The audit measures mobile performance for a sample of pages with the PageSpeed Insights API. Without a key the API uses a shared anonymous quota that is usually exhausted, so you need a **free Google API key**:
 
-1. En https://console.cloud.google.com crea o elige un proyecto.
-2. **APIs y servicios → Biblioteca**: busca **PageSpeed Insights API** y pulsa **Habilitar**.
-3. **APIs y servicios → Credenciales → Crear credenciales → Clave de API**.
-4. Recomendado: en la clave, **Restricciones de API → Restringir clave → PageSpeed Insights API**, para que no sirva para nada más.
-5. En Render, en el web service → **Environment**, añade `PAGESPEED_API_KEY` con esa clave y guarda (se redespliega). Como la variable se añadió después de crear el Blueprint, hay que ponerla a mano.
+1. At https://console.cloud.google.com create or pick a project.
+2. **APIs & Services → Library**: search for **PageSpeed Insights API** and click **Enable**.
+3. **APIs & Services → Credentials → Create credentials → API key**.
+4. Recommended: on the key, **API restrictions → Restrict key → PageSpeed Insights API**, so it cannot be used for anything else.
+5. In Render, on the web service → **Environment**, add `PAGESPEED_API_KEY` with that key and save (it redeploys). Since the variable was added after the Blueprint was created, it has to be set by hand.
 
-Opcional: `PAGESPEED_DAILY_LIMIT` (por defecto 500) limita las mediciones diarias entre todos los crawls. La cuota gratuita de Google es mucho mayor.
+Optional: `PAGESPEED_DAILY_LIMIT` (500 by default) caps daily measurements across all crawls. Google's free quota is much larger.
 
-Cada medición tarda entre 10 y 60 s en los servidores de Google. Se miden 4 páginas a la vez y 1 petición por segundo, así que la muestra por defecto (10 páginas) añade más o menos un minuto a la auditoría.
+Each measurement takes 10–60 s on Google's servers. 4 pages are measured at a time at 1 request per second, so the default sample (10 pages) adds roughly a minute to the audit.
 
-## Límites del plan gratuito (según la documentación de Render, octubre de 2026)
+## Free plan limits (per Render's documentation, October 2026)
 
-- **La web se duerme tras 15 minutos sin tráfico entrante** y tarda alrededor de 1 minuto en despertar. Mientras duerme, Sidekiq también se detiene: un crawl largo se pausa de hecho y continúa al volver a abrir la app, porque los jobs siguen en Key Value y los claims abandonados se recuperan. Un crawl de 500 páginas a 1 req/s tarda unos 9 minutos; basta con tener la página del crawl abierta mientras dura.
-- **Postgres gratis caduca a los 30 días de crearlo** (más 14 días de gracia), no tiene copias de seguridad y es 1 GB. Sirve para probar; para datos que quieras conservar, pasa a un plan de pago.
-- **Key Value gratis no persiste**: si se reinicia, se pierden los jobs en cola. Un crawl en marcha puede quedarse en «Rastreando»; relánzalo.
-- **No hay Shell ni one-off jobs.** Por eso el usuario se crea con `users:ensure` y las migraciones corren al arrancar.
-- **750 horas de instancia al mes** por workspace (las horas dormida no cuentan).
-- **512 MB de RAM y 0,1 CPU**: Puma (3 hilos) + Sidekiq (3 hilos) caben para crawls pequeños y medianos; crawls de miles de páginas irán lentos.
+- **The web service sleeps after 15 minutes without inbound traffic** and takes about a minute to wake up. While it sleeps, Sidekiq stops too: a long crawl is effectively paused and carries on when the app is opened again, because jobs stay in Key Value and abandoned claims are recovered. A 500-page crawl at 1 req/s takes about 9 minutes; keeping the crawl page open while it runs is enough.
+- **Free Postgres expires 30 days after creation** (plus a 14-day grace period), has no backups and is 1 GB. Fine for trying things out; for data you want to keep, move to a paid plan.
+- **Free Key Value is not persistent**: if it restarts, queued jobs are lost. A running crawl may get stuck at "Crawling"; start it again.
+- **No Shell and no one-off jobs.** That is why the user is created by `users:ensure` and migrations run at boot.
+- **750 instance hours a month** per workspace (sleeping hours do not count).
+- **512 MB of RAM and 0.1 CPU**: Puma (3 threads) + Sidekiq (3 threads) fit for small and medium crawls; crawls of thousands of pages will be slow.
 
-## Seguridad en producción
+## Production security
 
-- La protección SSRF está en la aplicación (`SafeHttp`), así que funciona igual en Render. Las capas de infraestructura del diseño (bloquear la salida a redes privadas, IMDSv2, Smokescreen) no existen aquí; solo importarían si abrieras la app a otros usuarios.
-- `force_ssl` está activo; `/up` queda fuera de la redirección para el health check.
-- El registro está deshabilitado: solo existe el usuario de `ADMIN_EMAIL`.
+- SSRF protection lives in the application (`SafeHttp`), so it works the same on Render. The infrastructure layers from the design (blocking egress to private networks, IMDSv2, Smokescreen) do not exist here; they would only matter if the app were opened to other users.
+- `force_ssl` is on; `/up` is excluded from the redirect for the health check.
+- Sign-up is disabled: the only user is the one from `ADMIN_EMAIL`.
 
-## Pasar a un plan de pago
+## Moving to a paid plan
 
-Basta con cambiar `plan:` en `render.yaml`. Con un plan de pago se puede además:
-- separar Sidekiq en un servicio `type: worker` con `bundle exec sidekiq -C config/sidekiq.yml` y quitar `SIDEKIQ_EMBEDDED`;
-- usar `preDeployCommand: bin/rails db:migrate` en lugar de migrar al arrancar;
-- usar el Shell para `bin/rails users:create`.
+Change `plan:` in `render.yaml`. A paid plan also lets you:
+- split Sidekiq into a `type: worker` service running `bundle exec sidekiq -C config/sidekiq.yml` and drop `SIDEKIQ_EMBEDDED`;
+- use `preDeployCommand: bin/rails db:migrate` instead of migrating at boot;
+- use the Shell for `bin/rails users:create`.

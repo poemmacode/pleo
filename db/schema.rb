@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_20_051854) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_20_155259) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -20,9 +20,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_20_051854) do
     t.string "category", null: false
     t.string "severity", null: false
     t.integer "weight", null: false
-    t.string "title", null: false
-    t.text "description", null: false
-    t.text "how_to_fix", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["key"], name: "index_check_definitions_on_key", unique: true
@@ -253,6 +250,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_20_051854) do
     t.datetime "generated_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "locale", default: "en", null: false
     t.index ["crawl_id"], name: "index_reports_on_crawl_id"
   end
 
@@ -270,6 +268,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_20_051854) do
     t.string "password_digest", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "locale", default: "en", null: false
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 

@@ -6,40 +6,50 @@ RSpec.describe "Projects and domains", type: :system do
   it "rejects a wrong password, then logs in" do
     user
     visit root_path
-    fill_in "Correo", with: "ana@example.com"
-    fill_in "Contraseña", with: "contraseña mala"
-    click_on "Entrar"
-    expect(page).to have_css("[role=alert]", text: "Correo o contraseña incorrectos")
+    fill_in "Email", with: "ana@example.com"
+    fill_in "Password", with: "wrong password"
+    click_on "Sign in"
+    expect(page).to have_css("[role=alert]", text: "Wrong email or password")
 
-    fill_in "Contraseña", with: RequestHelpers::PASSWORD
-    click_on "Entrar"
-    expect(page).to have_css("h1", text: "Proyectos")
-    expect(page).to have_text("Aún no tienes proyectos.")
+    fill_in "Password", with: RequestHelpers::PASSWORD
+    click_on "Sign in"
+    expect(page).to have_css("h1", text: "Projects")
+    expect(page).to have_text("You have no projects yet.")
   end
 
   it "creates a project, adds a domain and switches verification instructions" do
     log_in_as(user)
-    fill_in "Nuevo proyecto", with: "Blog"
-    click_on "Crear"
+    fill_in "New project", with: "Blog"
+    click_on "Create"
     expect(page).to have_css("h1", text: "Blog")
 
-    fill_in "Añadir dominio", with: "127.0.0.1"
-    click_on "Añadir"
-    expect(page).to have_css(".error", text: "Host no puede ser una dirección IP")
+    fill_in "Add domain", with: "127.0.0.1"
+    click_on "Add"
+    expect(page).to have_css(".error", text: "Host can't be an IP address")
 
-    fill_in "Añadir dominio", with: "https://Ejemplo.com/"
-    click_on "Añadir"
+    fill_in "Add domain", with: "https://Example.org/"
+    click_on "Add"
     domain = Domain.last
     expect(page).to have_text(domain.txt_record_value)
     expect(page).to have_no_text(Domain::Verifier.meta_tag(domain))
 
-    choose "Etiqueta meta"
+    choose "Meta tag"
     expect(page).to have_text(Domain::Verifier.meta_tag(domain))
-    expect(page).to have_no_text("Crea este registro DNS")
+    expect(page).to have_no_text("Create this DNS record")
 
-    failure = Domain::Verifier::Result.new(false, "verification_failed", "No se encontró la etiqueta meta")
+    failure = Domain::Verifier::Result.new(false, "verification_failed", "Meta tag not found")
     expect_any_instance_of(Domain::Verifier).to receive(:call).with("meta").and_return(failure)
-    click_on "Verificar"
-    expect(page).to have_css(".flash-alert", text: "ejemplo.com: No se encontró la etiqueta meta")
+    click_on "Verify"
+    expect(page).to have_css(".flash-alert", text: "example.org: Meta tag not found")
+  end
+
+  it "switches the interface to Spanish from the top bar and keeps it" do
+    log_in_as(user)
+    click_on "ES"
+
+    expect(page).to have_css("h1", text: "Proyectos")
+    expect(page).to have_css("html[lang=es]", visible: :all)
+    visit root_path
+    expect(page).to have_button("Salir")
   end
 end

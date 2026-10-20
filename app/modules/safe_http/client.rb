@@ -50,7 +50,7 @@ module SafeHttp
           location = response_headers["location"]&.first
 
           if follow_redirects && REDIRECT_STATUSES.include?(status) && location
-            raise Errors::TooManyRedirects, "más de #{@max_redirects} redirecciones" if chain.size >= @max_redirects
+            raise Errors::TooManyRedirects, "more than #{@max_redirects} redirects" if chain.size >= @max_redirects
 
             chain << { url:, status: }
             url = resolve_location(target.uri, location)
@@ -66,11 +66,11 @@ module SafeHttp
         return target.literal_ip if target.literal_ip
 
         addresses = @resolver.addresses(target.host)
-        raise Errors::Resolution, "#{target.host} no tiene registros A/AAAA" if addresses.empty?
+        raise Errors::Resolution, "#{target.host} has no A/AAAA records" if addresses.empty?
 
         # Reject if *any* record is blocked, so a mixed answer cannot be used to reach an internal address.
         blocked = addresses.find { IpPolicy.blocked?(_1) }
-        raise Errors::UnsafeTarget, "#{target.host} resuelve a una dirección bloqueada (#{blocked})" if blocked
+        raise Errors::UnsafeTarget, "#{target.host} resolves to a blocked address (#{blocked})" if blocked
 
         addresses.find(&:ipv4?) || addresses.first
       end
@@ -82,7 +82,7 @@ module SafeHttp
         http.verify_mode = OpenSSL::SSL::VERIFY_PEER
         http.max_retries = 0
         remaining = deadline - monotonic
-        raise Errors::Timeout, "tiempo total agotado" if remaining <= 0
+        raise Errors::Timeout, "total time limit exceeded" if remaining <= 0
 
         http.open_timeout = [ @open_timeout, remaining ].min
         http.read_timeout = [ @read_timeout, remaining ].min
@@ -105,7 +105,7 @@ module SafeHttp
               response_headers = response.to_hash
               reader = BodyReader.new(response["content-encoding"], @max_bytes)
               response.read_body do |chunk|
-                raise Errors::Timeout, "tiempo total agotado" if monotonic > deadline
+                raise Errors::Timeout, "total time limit exceeded" if monotonic > deadline
 
                 reader << chunk
               end
@@ -129,7 +129,7 @@ module SafeHttp
       def resolve_location(base, location)
         URI.join(base.to_s, location).to_s
       rescue URI::Error
-        raise Errors::InvalidUrl, "cabecera Location inválida"
+        raise Errors::InvalidUrl, "invalid Location header"
       end
 
       def monotonic

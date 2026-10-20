@@ -29,7 +29,7 @@ class Domain < ApplicationRecord
       self.host = Domain::HostNormalizer.call(host_input)
     rescue Domain::HostNormalizer::InvalidHost => e
       self.host = nil
-      @host_error = e.message
+      @host_error = e.code
     end
 
     def host_must_be_normalizable

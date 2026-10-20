@@ -2,7 +2,7 @@
   <% if finding.page_id %>
     <%= link_to finding.url, crawl_page_path(crawl, finding.page_id), data: { turbo_frame: "_top" } %>
   <% else %>
-    <code><%= finding.url || "Todo el sitio" %></code>
+    <code><%= finding.url || t(".whole_site") %></code>
   <% end %>
   <% if finding.details.present? %><div class="muted"><%= format_details(finding.details) %></div><% end %>
 </li>

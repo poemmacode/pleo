@@ -6,7 +6,7 @@ RSpec.describe "Reports" do
                                               category_scores: { "metadata" => 61.2, "links" => 100.0 }) } }
   let!(:home) { audit_page("/", title: "Inicio — Café & Niño", word_count: 812) }
   let!(:evil) { audit_page("/evil", title: '=HYPERLINK("http://attacker.example","clic")', meta_description: "+SUM(1,2)") }
-  let!(:broken) { audit_page("/rota", status_code: 404, title: nil) }
+  let!(:broken) { audit_page("/broken", status_code: 404, title: nil) }
 
   before do
     Audit::Catalog.sync_definitions!
@@ -25,11 +25,12 @@ RSpec.describe "Reports" do
   describe Reports::PagesCsv do
     let(:csv) { described_class.new(crawl).render }
 
-    it "starts with a BOM and Spanish headers, one row per page" do
-      expect(csv).to start_with("﻿URL,Estado HTTP,")
+    it "starts with a BOM and headers in the current language, one row per page" do
+      expect(csv).to start_with("\uFEFFURL,HTTP status,")
+      expect(I18n.with_locale(:es) { described_class.new(crawl).render }).to start_with("\uFEFFURL,Estado HTTP,")
       rows = CSV.parse(csv.delete_prefix("﻿"), headers: true)
       expect(rows.size).to eq(3)
-      expect(rows.find { _1["URL"] == "https://example.com/" }.to_h).to include("Title" => "Inicio — Café & Niño", "Palabras" => "812", "Indexable" => "sí")
+      expect(rows.find { _1["URL"] == "https://example.com/" }.to_h).to include("Title" => "Inicio — Café & Niño", "Words" => "812", "Indexable" => "yes")
     end
 
     it "neutralises cells that would run as formulas in a spreadsheet" do
@@ -45,8 +46,8 @@ RSpec.describe "Reports" do
       rows = CSV.parse(described_class.new(crawl).render.delete_prefix("﻿"), headers: true)
 
       expect(rows.map { _1["Check"] }).to eq(%w[http.4xx title.too_long])
-      expect(rows.first.to_h).to include("Prioridad" => "81.0", "Severidad" => "Error", "Categoría" => "Rastreabilidad",
-                                         "Problema" => "Páginas con error 4xx", "Detalles" => "status: 404")
+      expect(rows.first.to_h).to include("Priority" => "81.0", "Severity" => "Error", "Category" => "Crawlability",
+                                         "Problem" => "Pages returning 4xx errors", "Details" => "status: 404")
     end
   end
 
@@ -55,7 +56,7 @@ RSpec.describe "Reports" do
 
     it "has one sheet per section" do
       names = entries["xl/workbook.xml"].scan(/<sheet [^>]*name="([^"]+)"/).flatten
-      expect(names).to eq([ "Resumen", "Problemas", "Hallazgos", "Páginas", "Enlaces rotos", "Duplicados", "Datos estructurados", "Rendimiento" ])
+      expect(names).to eq([ "Summary", "Problems", "Findings", "Pages", "Broken links", "Duplicates", "Structured data", "Performance" ])
     end
 
     it "stores third-party text as escaped strings, never as formulas" do
@@ -64,11 +65,11 @@ RSpec.describe "Reports" do
 
       expect(sheets).not_to include("<f>")
       expect(strings).to include(%('=HYPERLINK("http://attacker.example","clic")), "'+SUM(1,2)")
-      expect(strings).to include("Inicio — Café & Niño", "Auditoría SEO de example.com", "Páginas con error 4xx")
+      expect(strings).to include("Inicio — Café & Niño", "SEO audit of example.com", "Pages returning 4xx errors")
     end
 
     it "lists broken internal links" do
-      expect(entries["xl/sharedStrings.xml"]).to include("https://example.com/rota", "interno")
+      expect(entries["xl/sharedStrings.xml"]).to include("https://example.com/broken", "internal")
     end
   end
 
@@ -79,6 +80,13 @@ RSpec.describe "Reports" do
       expect(pdf).to start_with("%PDF")
       # Prawn writes each text run as a hex string in Windows-1252.
       text = pdf.scan(/<([0-9a-f]+)> Tj/).map { [ _1.first ].pack("H*").force_encoding("Windows-1252").encode("UTF-8") }.join("\n")
+      expect(text).to include("Site health: 72.5 / 100", "Metadata", "What to fix first", "1. Pages returning 4xx errors")
+    end
+
+    it "renders in Spanish when that is the active locale" do
+      pdf = I18n.with_locale(:es) { described_class.new(crawl).render }
+      text = pdf.scan(/<([0-9a-f]+)> Tj/).map { [ _1.first ].pack("H*").force_encoding("Windows-1252").encode("UTF-8") }.join("\n")
+
       expect(text).to include("Salud del sitio: 72,5 / 100", "Metadatos", "Qué arreglar primero", "1. Páginas con error 4xx")
     end
 
@@ -97,7 +105,7 @@ RSpec.describe "Reports" do
     crawl_urls = Array.new(10_000) { |i| { crawl_id: crawl.id, url: "https://example.com/p#{i}", url_hash: CrawlUrl.hash_url("p#{i}"), source: "link", state: "done" } }
     ids = CrawlUrl.insert_all(crawl_urls, returning: :id).rows.flatten
     Page.insert_all(ids.each_with_index.map do |id, i|
-      { crawl_id: crawl.id, crawl_url_id: id, url: "https://example.com/p#{i}", status_code: 200, title: "Página #{i}", fetched_at: Time.current }
+      { crawl_id: crawl.id, crawl_url_id: id, url: "https://example.com/p#{i}", status_code: 200, title: "Page #{i}", fetched_at: Time.current }
     end)
     started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 

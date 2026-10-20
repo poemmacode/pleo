@@ -1,31 +1,31 @@
-<%# Rendered in requests and in Turbo Stream broadcasts from jobs: depends only on the crawl. %>
+<%# Rendered in requests and in Turbo Stream broadcasts from jobs: depends only on the crawl and the locale. %>
 <div id="<%= dom_id(crawl, :audit) %>">
   <% if crawl.completed? %>
     <section class="card stack">
       <div class="row">
-        <h2>Auditoría</h2>
+        <h2><%= t(".heading") %></h2>
         <% if crawl.audit_status.in?(%w[done failed]) %>
-          <%= button_to "Repetir auditoría", audit_crawl_path(crawl), class: "secondary" %>
+          <%= button_to t(".rerun"), audit_crawl_path(crawl), class: "secondary" %>
         <% end %>
         <% if crawl.audit_status == "done" %>
-          <%= link_to "Ver duplicados", crawl_duplicates_path(crawl) %>
+          <%= link_to t(".duplicates"), crawl_duplicates_path(crawl) %>
         <% end %>
       </div>
       <% case crawl.audit_status %>
       <% when "failed" %>
-        <p role="alert" class="error">La auditoría falló: <%= crawl.audit_error %></p>
+        <p role="alert" class="error"><%= t(".failed", error: crawl.audit_error) %></p>
       <% when "done" %>
         <% summary = Audit::Summary.new(crawl) %>
         <% previous = crawl.previous_scored %>
         <div class="health">
-          <div class="health-score <%= health_class(crawl.health_score) %>" aria-label="Salud del sitio">
+          <div class="health-score <%= health_class(crawl.health_score) %>" aria-label="<%= t(".health") %>">
             <span class="value"><%= format_score(crawl.health_score) %></span><span class="out-of">/100</span>
           </div>
           <div class="stack">
-            <strong>Salud del sitio</strong>
+            <strong><%= t(".health") %></strong>
             <% if previous %>
               <span><%= score_delta(crawl.health_score, previous.health_score) %>
-                <span class="muted">frente al crawl del <%= l(previous.created_at, format: :short) %> (<%= format_score(previous.health_score) %>)</span></span>
+                <span class="muted"><%= t(".compared_to", date: l(previous.created_at, format: :short), score: format_score(previous.health_score)) %></span></span>
             <% end %>
           </div>
         </div>
@@ -34,7 +34,7 @@
             <% score = crawl.category_scores[category] %>
             <% next unless score %>
             <li>
-              <span><%= Audit::Scoring::CATEGORY_LABELS[category] %></span>
+              <span><%= category_label(category) %></span>
               <span class="bar"><span class="<%= health_class(score) %>" style="width: <%= score %>%"></span></span>
               <span class="num"><%= format_score(score) %></span>
             </li>
@@ -42,12 +42,12 @@
         </ul>
         <dl class="stats">
           <% summary.by_severity.each do |severity, count| %>
-            <div><dt><%= AuditHelper::SEVERITY_LABELS[severity] %></dt><dd class="sev-<%= severity %>"><%= count %></dd></div>
+            <div><dt><%= t("audit.severities_plural.#{severity}") %></dt><dd class="sev-<%= severity %>"><%= count %></dd></div>
           <% end %>
         </dl>
         <%= render "crawls/reports", crawl: %>
         <%= render "crawls/performance", crawl: %>
-        <% if summary.entries.empty? %><p>No se encontraron problemas.</p><% end %>
+        <% if summary.entries.empty? %><p><%= t(".no_issues") %></p><% end %>
         <ul class="plain issues">
           <% summary.entries.each do |entry| %>
             <li>
@@ -55,14 +55,14 @@
                 <summary class="issue-toggle">
                   <%= severity_badge(entry.severity) %>
                   <span class="issue-title"><%= entry.title %></span>
-                  <span class="muted" title="Prioridad 0–100: gravedad, alcance e importancia de las páginas">prioridad <%= entry.priority %></span>
+                  <span class="muted" title="<%= t(".priority_hint") %>"><%= t(".priority", value: entry.priority) %></span>
                   <span class="muted"><%= entry.count %></span>
                 </summary>
                 <div class="issue-body stack">
                   <p><%= entry.description %></p>
-                  <p><strong>Cómo arreglarlo:</strong> <%= entry.how_to_fix %></p>
+                  <p><strong><%= t(".how_to_fix") %></strong> <%= entry.how_to_fix %></p>
                   <%= turbo_frame_tag "issue_#{entry.check_key.parameterize}", src: crawl_issue_path(crawl, entry.check_key), loading: :lazy do %>
-                    <p class="muted">Cargando…</p>
+                    <p class="muted"><%= t(".loading") %></p>
                   <% end %>
                 </div>
               </details>
@@ -70,7 +70,7 @@
           <% end %>
         </ul>
       <% else %>
-        <p class="muted">Analizando las páginas…</p>
+        <p class="muted"><%= t(".analyzing") %></p>
       <% end %>
     </section>
   <% end %>

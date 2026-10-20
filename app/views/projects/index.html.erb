@@ -1,24 +1,24 @@
-<% content_for :title, "Proyectos · SEO Platform" %>
+<% content_for :title, t(".page_title") %>
 <main>
-  <h1>Proyectos</h1>
+  <h1><%= t(".heading") %></h1>
   <%= form_with model: @project, class: "inline-form" do |f| %>
     <%= f.label :name do %>
-      Nuevo proyecto
-      <%= f.text_field :name, placeholder: "Mi blog", "aria-invalid": @project.errors[:name].any? %>
+      <%= t(".new_project") %>
+      <%= f.text_field :name, placeholder: t(".name_placeholder"), "aria-invalid": @project.errors[:name].any? %>
     <% end %>
-    <%= f.submit "Crear" %>
+    <%= f.submit t(".create") %>
   <% end %>
   <%= field_error(@project, :name) %>
 
   <% if @projects.empty? %>
-    <p class="muted">Aún no tienes proyectos.</p>
+    <p class="muted"><%= t(".empty") %></p>
   <% end %>
   <ul class="list">
     <% @projects.each do |project| %>
       <li class="card">
         <%= link_to project.name, project %>
         <span class="muted">
-          <%= pluralize(project.domains.size, "dominio") %> · <%= project.domains.count(&:verified?) %> verificado(s)
+          <%= t(".domains", count: project.domains.size) %> · <%= t(".verified", count: project.domains.count(&:verified?)) %>
         </span>
       </li>
     <% end %>

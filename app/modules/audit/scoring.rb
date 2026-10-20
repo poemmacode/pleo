@@ -18,11 +18,6 @@ module Audit
       "https" => 6, "structured_data" => 5, "mobile" => 5, "performance" => 3, "ai_search" => 3
     }.freeze
     SEVERITY_FACTORS = { "error" => 1.0, "warning" => 1.0, "notice" => 0.25 }.freeze
-    CATEGORY_LABELS = {
-      "crawlability" => "Rastreabilidad", "indexability" => "Indexabilidad", "links" => "Enlaces", "metadata" => "Metadatos",
-      "content" => "Contenido", "https" => "HTTPS", "structured_data" => "Datos estructurados", "mobile" => "Móvil",
-      "performance" => "Rendimiento", "ai_search" => "Búsqueda con IA"
-    }.freeze
 
     module_function
 

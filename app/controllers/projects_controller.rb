@@ -13,7 +13,7 @@ class ProjectsController < ApplicationController
   def create
     @project = Current.user.projects.new(params.require(:project).permit(:name))
     if @project.save
-      redirect_to @project, notice: "Proyecto creado."
+      redirect_to @project, notice: t("projects.flash.created")
     else
       @projects = Current.user.projects.includes(:domains).order(:created_at)
       render :index, status: :unprocessable_entity
@@ -22,7 +22,7 @@ class ProjectsController < ApplicationController
 
   def destroy
     @project.destroy!
-    redirect_to root_path, notice: "Proyecto eliminado.", status: :see_other
+    redirect_to root_path, notice: t("projects.flash.deleted"), status: :see_other
   end
 
   private

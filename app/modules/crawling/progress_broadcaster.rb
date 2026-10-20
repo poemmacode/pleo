@@ -4,6 +4,8 @@ module Crawling
   # Fetch lanes call it after every URL; a Redis SET NX PX key lets through at most one broadcast
   # every THROTTLE_MS per crawl so a fast crawl does not flood browsers. State changes pass
   # force: true and always broadcast, including the audit section.
+  #
+  # Pages subscribe to [crawl, :progress, locale], so each broadcast is rendered once per language.
   module ProgressBroadcaster
     THROTTLE_MS = 2_000
     KEY_PREFIX = "seo:broadcast:crawl:".freeze
@@ -14,15 +16,22 @@ module Crawling
       return unless force || acquire(crawl)
 
       crawl = Crawl.find(crawl.id) # fresh counters, no cached config/scope
-      Turbo::StreamsChannel.broadcast_replace_to(
-        [ crawl, :progress ], target: ActionView::RecordIdentifier.dom_id(crawl, :progress),
-        partial: "crawls/progress", locals: { crawl: }
-      )
-      return unless force
+      each_locale(crawl) do |stream|
+        replace(stream, crawl, :progress, "crawls/progress")
+        replace(stream, crawl, :audit, "crawls/audit") if force
+      end
+    end
 
+    # Yields the stream name for every available locale, with that locale active.
+    def each_locale(crawl)
+      I18n.available_locales.each do |locale|
+        I18n.with_locale(locale) { yield [ crawl, :progress, locale ] }
+      end
+    end
+
+    def replace(stream, crawl, section, partial)
       Turbo::StreamsChannel.broadcast_replace_to(
-        [ crawl, :progress ], target: ActionView::RecordIdentifier.dom_id(crawl, :audit),
-        partial: "crawls/audit", locals: { crawl: }
+        stream, target: ActionView::RecordIdentifier.dom_id(crawl, section), partial:, locals: { crawl: }
       )
     end
 

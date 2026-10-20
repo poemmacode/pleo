@@ -87,7 +87,7 @@ RSpec.describe SafeHttp::Robots::Parser do
   end
 
   it "handles comments, blank lines, BOM, CRLF and unknown directives" do
-    text = "﻿User-agent: * # todos\r\nHost: example.com\r\n\r\nDisallow: /x # privado\r\nNoindex: /y\r\n"
+    text = "﻿User-agent: * # everyone\r\nHost: example.com\r\n\r\nDisallow: /x # private\r\nNoindex: /y\r\n"
     p = policy(text)
     expect(p).not_to be_allowed("/x")
     expect(p).to be_allowed("/y")

@@ -5,7 +5,7 @@ class Crawls::DuplicatesController < ApplicationController
   before_action :set_crawl
 
   def index
-    @type = Audit::Duplicates::TYPES.key?(params[:type]) ? params[:type] : "title"
+    @type = Audit::Duplicates::TYPES.include?(params[:type]) ? params[:type] : "title"
     @groups = Audit::Duplicates.groups(@crawl, @type)
   end
 end

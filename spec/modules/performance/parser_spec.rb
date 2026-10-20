@@ -8,14 +8,14 @@ RSpec.describe Performance::Parser do
                               ttfb_ms: 320, field_scope: "url", field_category: "SLOW", field_lcp_ms: 4600, field_cls: 0.12,
                               field_inp_ms: 620)
     expect(result[:opportunities]).to eq([
-      { id: "image-delivery-insight", title: "Mejora la entrega de imágenes", savings_ms: 1500 },
-      { id: "render-blocking-insight", title: "Solicitudes que bloquean el renderizado", savings_ms: 900 }
+      { id: "image-delivery-insight", title: "Improve image delivery", savings_ms: 1500 },
+      { id: "render-blocking-insight", title: "Render-blocking requests", savings_ms: 900 }
     ])
   end
 
   it "reads Lighthouse 11 opportunities" do
     expect(described_class.parse(psi_response(lighthouse: 11))[:opportunities])
-      .to eq([ { id: "unused-javascript", title: "Reduce el JavaScript sin usar", savings_ms: 1200 } ])
+      .to eq([ { id: "unused-javascript", title: "Reduce unused JavaScript", savings_ms: 1200 } ])
   end
 
   it "marks origin-level field data and handles pages without field data" do
@@ -24,9 +24,9 @@ RSpec.describe Performance::Parser do
   end
 
   it "raises on Lighthouse runtime errors" do
-    body = { "lighthouseResult" => { "runtimeError" => { "code" => "NO_FCP", "message" => "La página no pintó contenido" } } }
+    body = { "lighthouseResult" => { "runtimeError" => { "code" => "NO_FCP", "message" => "The page did not paint any content" } } }
 
-    expect { described_class.parse(body) }.to raise_error(Performance::Client::Error, /no pintó contenido/)
+    expect { described_class.parse(body) }.to raise_error(Performance::Client::Error, /did not paint any content/)
     expect { described_class.parse({}) }.to raise_error(Performance::Client::Error)
   end
 end

@@ -3,10 +3,7 @@ module Audit
     module AiSearch
       class BotsBlocked < Check
         site_wide!
-        define key: "ai.bots_blocked", category: "ai_search", severity: "warning", weight: 3,
-          title: "robots.txt bloquea rastreadores de IA",
-          description: "Algunos rastreadores de buscadores y asistentes de IA no pueden leer el sitio. Puede ser intencionado; revisa que lo sea.",
-          fix: "Si quieres aparecer en respuestas de IA, permite esos user-agents en robots.txt."
+        define key: "ai.bots_blocked", category: "ai_search", severity: "warning", weight: 3
 
         def findings
           blocked = context.site_facts["ai_bots_blocked"].to_a
@@ -16,10 +13,7 @@ module Audit
 
       class LlmsTxtMissing < Check
         site_wide!
-        define key: "ai.llms_txt_missing", category: "ai_search", severity: "notice", weight: 1,
-          title: "Sin llms.txt",
-          description: "llms.txt es una propuesta para resumir el sitio a modelos de lenguaje; aún no es un estándar ni garantiza efectos.",
-          fix: "Opcional: publica /llms.txt con un resumen y enlaces a tus páginas clave."
+        define key: "ai.llms_txt_missing", category: "ai_search", severity: "notice", weight: 1
 
         def findings
           facts = context.site_facts["llms_txt"]

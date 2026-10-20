@@ -10,9 +10,9 @@ end
 module SystemHelpers
   def log_in_as(user)
     visit new_session_path
-    fill_in "Correo", with: user.email
-    fill_in "Contraseña", with: RequestHelpers::PASSWORD
-    click_on "Entrar"
+    fill_in "Email", with: user.email
+    fill_in "Password", with: RequestHelpers::PASSWORD
+    click_on "Sign in"
     expect(page).to have_css("header.topbar", text: user.email)
   end
 end

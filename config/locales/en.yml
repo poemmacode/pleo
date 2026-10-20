@@ -1,31 +1,483 @@
-# Files in the config/locales directory are used for internationalization and
-# are automatically loaded by Rails. If you want to use locales other than
-# English, add the necessary files in this directory.
-#
-# To use the locales, use `I18n.t`:
-#
-#     I18n.t "hello"
-#
-# In views, this is aliased to just `t`:
-#
-#     <%= t("hello") %>
-#
-# To use a different locale, set it with `I18n.locale`:
-#
-#     I18n.locale = :es
-#
-# This would use the information in config/locales/es.yml.
-#
-# To learn more about the API, please read the Rails Internationalization guide
-# at https://guides.rubyonrails.org/i18n.html.
-#
-# Be aware that YAML interprets the following case-insensitive strings as
-# booleans: `true`, `false`, `on`, `off`, `yes`, `no`. Therefore, these strings
-# must be quoted to be interpreted as strings. For example:
-#
-#     en:
-#       "yes": yup
-#       enabled: "ON"
-
+# Interface texts. Checks live in checks.<locale>.yml. English is the default locale.
 en:
-  hello: "Hello world"
+  app:
+    name: SEO Platform
+  locales:
+    en: English
+    es: Español
+  common:
+    'yes': 'yes'
+    'no': 'no'
+    load_more: Load more
+  shared:
+    locale_switcher:
+      label: Language
+  layouts:
+    application:
+      sign_out: Sign out
+  sessions:
+    new:
+      page_title: Sign in · SEO Platform
+      email: Email
+      password: Password
+      submit: Sign in
+      submitting: Signing in…
+    invalid_credentials: Wrong email or password.
+    rate_limited: Too many attempts; wait a few minutes.
+  projects:
+    index:
+      page_title: Projects · SEO Platform
+      heading: Projects
+      new_project: New project
+      name_placeholder: My blog
+      create: Create
+      empty: You have no projects yet.
+      domains:
+        one: '%{count} domain'
+        other: '%{count} domains'
+      verified:
+        one: '%{count} verified'
+        other: '%{count} verified'
+    show:
+      page_title: '%{name} · SEO Platform'
+      back: ← Projects
+      domains: Domains
+      add_domain: Add domain
+      host_placeholder: example.com
+      add: Add
+      crawls: Crawls
+      no_crawls: No crawls yet.
+      pages:
+        one: '%{count} page'
+        other: '%{count} pages'
+      health: health
+      delete: Delete project
+      delete_confirm: Delete this project, its domains and its crawls?
+    flash:
+      created: Project created.
+      deleted: Project deleted.
+  domains:
+    domain:
+      verified: Verified
+      unverified: Unverified
+      new_crawl: New crawl
+      method: Verification method
+      methods:
+        dns_txt: DNS TXT record
+        html_file: File on the server
+        meta: Meta tag
+      dns_instructions: 'Create this DNS record at your provider (propagation can take a few minutes):'
+      type: Type
+      name: Name
+      value: Value
+      file_instructions: 'Publish a text file at this exact URL (without redirecting to another host):'
+      content: Content
+      meta_instructions_html: 'Add this tag inside <code>&lt;head&gt;</code> on the home page of %{host}:'
+      verify: Verify
+      verifying: Verifying…
+      remove: Remove domain
+      remove_confirm: Remove %{host}?
+    flash:
+      rate_limited: Too many verification attempts; wait a minute.
+      added: Domain %{host} added. Verify it to crawl it in full.
+      removed: Domain %{host} removed.
+      verified: '%{host} verified.'
+      verification_failed: '%{host}: %{detail}'
+  domain_verification:
+    invalid_method: Unknown verification method
+    method_not_available: This method will be available in a later version
+    txt_missing: TXT record %{value} not found on %{host}
+    dns_error: 'DNS lookup failed: %{error}'
+    file_mismatch: '%{url} returned %{status} without the expected content (%{value})'
+    meta_missing: Meta tag %{name} with the token not found on %{url}
+    cross_host_redirect: '%{url} redirects to another host (%{host}); add that host as a separate domain'
+    fetch_error: 'Could not download: %{errors}'
+  crawls:
+    new:
+      page_title: New crawl · SEO Platform
+      heading: New crawl
+      domain: Domain
+      unverified_option: '%{host} (unverified)'
+      unverified_notice: 'Unverified domain: at most %{pages} pages at %{rps} requests/s. Verify it if it is yours and you need to crawl it in full.'
+      start_url: Start URL
+      start_url_hint: Empty = %{url}
+      scope: Scope
+      scopes:
+        domain: Domain and subdomains
+        subdomain: This host only
+        subfolder: This folder only
+      device: Device
+      devices:
+        desktop: Desktop
+        mobile: Mobile
+      max_pages: Maximum pages
+      requests_per_second: Requests per second
+      max_depth: Maximum depth
+      exclude_patterns: Exclude paths (regex, one per line)
+      patterns_hint: Applied to path + query, e.g. ^/wp-admin
+      include_patterns: Only include paths (regex, one per line)
+      use_sitemaps: Discover URLs from sitemaps
+      respect_nofollow: Do not follow nofollow links
+      run_pagespeed: Measure performance with PageSpeed Insights (mobile)
+      pagespeed_sample: Pages to measure
+      pagespeed_key_missing_html: 'PageSpeed Insights needs an API key: set <code>PAGESPEED_API_KEY</code> (see docs/deploy.md). Without it, performance is not measured.'
+      terms: I have checked that the terms of %{host} allow this crawl
+      robots_note: robots.txt and its Crawl-delay are always respected. The bot identifies itself as SEOPlatformBot.
+      submit: Start crawl
+      submitting: Starting…
+    show:
+      page_title: Crawl of %{host} · SEO Platform
+      back: ← Project
+      heading: Crawl of %{host}
+      loading_pages: Loading pages…
+    progress:
+      rate: '%{rps} req/s'
+      discovered: Discovered
+      crawled: Crawled
+      failed: Failed
+      skipped: Skipped
+      limit: Limit
+      pause: Pause
+      resume: Resume
+      cancel: Cancel
+      cancel_confirm: Cancel the crawl?
+      status_codes: Status codes
+      no_pages: No pages yet.
+      no_response: no response
+      robots_and_sitemaps: robots.txt and sitemaps
+      reading_sitemaps: Reading sitemaps…
+      sitemap_result: '%{status}: %{urls} URLs, %{added} new'
+    audit:
+      heading: Audit
+      rerun: Run audit again
+      duplicates: View duplicates
+      failed: 'The audit failed: %{error}'
+      health: Site health
+      compared_to: compared with the crawl of %{date} (%{score})
+      no_issues: No problems found.
+      priority_hint: 'Priority 0–100: severity, reach and importance of the pages'
+      priority: priority %{value}
+      how_to_fix: 'How to fix it:'
+      loading: Loading…
+      analyzing: Analysing the pages…
+    performance:
+      no_key_html: 'Performance not measured: the PageSpeed Insights API key is missing (<code>PAGESPEED_API_KEY</code>).'
+      heading: Mobile performance (PageSpeed Insights)
+      limited:
+        one: The daily measurement limit was reached; only %{count} page was measured.
+        other: The daily measurement limit was reached; only %{count} pages were measured.
+      page: Page
+      score: Score
+      real_users: Real users
+      top_opportunity: 'Top improvement: %{title} (−%{savings})'
+    reports:
+      heading: Export
+      failed: 'failed: %{error}'
+      generating: generating…
+    pages:
+      index:
+        heading: Pages
+        status: Status
+        filter: Filter
+        depth: Depth
+        empty: No pages for this filter.
+      show:
+        page_title: '%{url} · SEO Platform'
+        back: ← Crawl
+        status: Status
+        indexable: Indexable
+        not_indexable: no (%{reason})
+        language: Language
+        words: Words
+        depth: Depth
+        inlinks: Inbound links
+        images_missing_alt: Images without alt
+        images_count: '%{missing} of %{total}'
+        field_data: 'Real users (CrUX, p75): %{summary}'
+        opportunities: Opportunities
+        savings: estimated saving %{savings}
+        issues: Problems
+        no_issues: None.
+        headings: Headings
+        structured_data: Structured data
+        no_markup: No markup.
+        no_type: (no type)
+        invalid_syntax: invalid syntax
+        outlinks: Outbound links (%{count})
+        link_type: Type
+        internal: internal
+        external: external
+        inlinks_list: Inbound links (%{count})
+    issues:
+      finding:
+        whole_site: Whole site
+    duplicates:
+      index:
+        page_title: Duplicates · SEO Platform
+        back: ← Crawl
+        heading: Duplicates on %{host}
+        types:
+          title: Titles
+          description: Descriptions
+          content: Content
+        empty: No duplicates of this type among indexable pages.
+        pages:
+          one: '%{count} page'
+          other: '%{count} pages'
+    statuses:
+      queued: Queued
+      running: Crawling
+      paused: Paused
+      completed: Completed
+      failed: Failed
+      cancelled: Cancelled
+    reasons:
+      user: by the user
+      server_overloaded: the server kept returning errors; the rate was reduced and the crawl paused
+      max_pages_reached: maximum number of pages reached
+      robots_unreachable: 'robots.txt does not respond: nothing is crawled (RFC 9309)'
+    skip_reasons:
+      robots: Blocked by robots.txt
+      limit: Beyond the page limit
+      unsafe_host: Host not allowed (private IP)
+      error: Repeated error
+      cancelled: Crawl cancelled
+    robots_outcomes:
+      parsed: robots.txt read
+      unavailable: no robots.txt (everything allowed)
+      unreachable: robots.txt unreachable (nothing allowed)
+    page_filters:
+      all: All
+      2xx: 2xx
+      3xx: 3xx
+      4xx: 4xx
+      5xx: 5xx
+      error: No response
+    flash:
+      add_domain_first: Add a domain to the project first.
+      audit_needs_completed: The audit can only be re-run on a completed crawl.
+      audit_started: Audit started.
+      rate_limited: Too many crawls created; wait a minute.
+      paused: Crawl paused.
+      resumed: Crawl resumed.
+      cancelled: Crawl cancelled.
+      invalid_transition: That is not possible with a crawl that is %{status}.
+    create_errors:
+      crawl_in_progress: A crawl of %{host} is already active
+      too_many_crawls: At most %{count} active crawls at a time
+      unsafe_target: 'The start URL is not allowed: %{detail}'
+      unreachable: 'The start URL cannot be reached: %{detail}'
+  audit:
+    no_change: = no change
+    severities:
+      error: Error
+      warning: Warning
+      notice: Notice
+    severities_plural:
+      error: Errors
+      warning: Warnings
+      notice: Notices
+    categories:
+      crawlability: Crawlability
+      indexability: Indexability
+      links: Links
+      metadata: Metadata
+      content: Content
+      https: HTTPS
+      structured_data: Structured data
+      mobile: Mobile
+      performance: Performance
+      ai_search: AI search
+  performance:
+    no_field_data: no real-user data
+    field_summary: '%{category} (%{where}): LCP %{lcp}, INP %{inp}, CLS %{cls}'
+    field_categories:
+      FAST: fast
+      AVERAGE: needs improvement
+      SLOW: slow
+    field_scopes:
+      url: this page
+      origin: whole site
+  reports:
+    kinds:
+      pages_csv: Pages (CSV)
+      issues_csv: Problems (CSV)
+      xlsx: Full report (Excel)
+      pdf: Executive summary (PDF)
+    flash:
+      audit_not_done: Reports are available once the audit has finished.
+      generating: Generating %{report}…
+      not_ready: The report is not ready yet.
+    whole_site: Whole site
+    internal: internal
+    external: external
+    columns:
+      url: URL
+      status: HTTP status
+      error: Fetch error
+      redirect: Redirects to
+      indexable: Indexable
+      not_indexable_reason: Not indexable because
+      depth: Depth
+      in_sitemap: In sitemap
+      title: Title
+      title_length: Title length
+      meta_description: Meta description
+      description_length: Description length
+      h1: H1
+      canonical: Canonical
+      meta_robots: Meta robots
+      words: Words
+      inlinks: Inbound links
+      internal_outlinks: Internal outbound links
+      external_outlinks: External links
+      pagerank: Internal PageRank
+      response_ms: Time (ms)
+      bytes: Bytes
+      content_type: Content type
+      priority: Priority
+      severity: Severity
+      category: Category
+      check: Check
+      problem: Problem
+      details: Details
+      how_to_fix: How to fix it
+      findings: Findings
+      score: Score
+      page: Page
+      source_page: Source page
+      link: Link
+      status_or_error: Status or error
+      link_type: Type
+      duplicate_type: Type
+      shared_value: Shared value
+      syntax: Syntax
+      types: Types
+      valid_syntax: Valid syntax
+      errors: Errors
+      lcp_ms: LCP (ms)
+      cls: CLS
+      tbt_ms: TBT (ms)
+      fcp_ms: FCP (ms)
+      speed_index_ms: Speed Index (ms)
+      ttfb_ms: TTFB (ms)
+      field_scope: Field data
+      field_category: Field category
+      field_lcp_ms: Field LCP (ms)
+      field_inp_ms: Field INP (ms)
+      field_cls: Field CLS
+      top_opportunity: Top improvement
+    workbook:
+      sheets:
+        summary: Summary
+        problems: Problems
+        findings: Findings
+        pages: Pages
+        broken_links: Broken links
+        duplicates: Duplicates
+        structured_data: Structured data
+        performance: Performance
+      title: SEO audit of %{host}
+      date: Date
+      start_url: Start URL
+      pages_crawled: Pages crawled
+      health: Site health (0–100)
+      previous_crawl: Previous crawl
+    pdf:
+      title: SEO audit of %{host}
+      heading: SEO audit
+      subtitle:
+        one: Crawl of %{date} · %{count} page
+        other: Crawl of %{date} · %{count} pages
+      health: 'Site health: %{score} / 100'
+      compared_to: '%{delta} compared with the previous crawl (%{previous})'
+      findings: 'Findings: %{errors} errors, %{warnings} warnings, %{notices} notices'
+      fix_first: What to fix first
+      fix_first_hint: 'Ordered by priority: severity, how many pages it affects and how important they are.'
+      no_problems: No problems found.
+      problem_meta: '%{severity} · %{findings} · priority %{priority}'
+      findings_count:
+        one: '%{count} finding'
+        other: '%{count} findings'
+      performance: Mobile performance (PageSpeed Insights)
+      performance_average:
+        one: 'Average score of %{count} measured page: %{average}/100. The slowest:'
+        other: 'Average score of %{count} measured pages: %{average}/100. The slowest:'
+      crawl_data: Crawl figures
+      start_url: 'Start URL: %{url}'
+      url_counts: 'URLs discovered: %{discovered} · crawled: %{crawled} · skipped: %{skipped}'
+      status_codes: 'HTTP status codes: %{codes}'
+      footer: Page <page> of <total> · generated on %{generated}
+  bot:
+    show:
+      intro: SEOPlatformBot is the crawler of a personal, non-commercial SEO audit tool. It visits sites to check technical issues (broken links, metadata, structured data…) at its user's request.
+      behaviour: How it behaves
+      robots_html: It always respects <code>robots.txt</code> (RFC 9309), including <code>Crawl-delay</code>. If robots.txt does not respond, it does not crawl.
+      unverified_limits: 'Sites not verified by their owner: at most %{pages} pages at %{rps} requests per second.'
+      backoff_html: It slows down or stops on its own if the server answers with 429 or 5xx errors, and respects <code>Retry-After</code>.
+      no_js: It does not run JavaScript, submit forms or try to get past logins or CAPTCHAs.
+      block: Blocking it
+      block_how_html: 'Add to your <code>robots.txt</code>:'
+  activerecord:
+    models:
+      user: User
+      project: Project
+      domain: Domain
+    attributes:
+      user:
+        email: Email
+        password: Password
+        locale: Language
+      project:
+        name: Name
+        monthly_api_budget_cents: Monthly API budget
+      domain:
+        host: Host
+        verification_method: Verification method
+        project: Project
+    errors:
+      models:
+        domain:
+          attributes:
+            host:
+              empty: can't be blank
+              ip_address: can't be an IP address
+              invalid_hostname: is not a valid host name
+              internal_host: is an internal or reserved host
+              not_registrable: does not belong to a public registrable domain
+              unsupported_scheme: only http and https are supported
+              credentials: must not include a user name or password
+              port: must not include a port
+              invalid_idn: is not a valid international domain name
+  activemodel:
+    attributes:
+      crawling/crawl_config:
+        start_url: Start URL
+        scope: Scope
+        max_pages: Maximum pages
+        max_depth: Maximum depth
+        requests_per_second: Requests per second
+        include_patterns: Include patterns
+        exclude_patterns: Exclude patterns
+        device: Device
+        render_js: JS rendering
+        terms_accepted: Site terms
+        pagespeed_sample: Pages to measure
+    errors:
+      messages:
+        out_of_range: must be between %{min} and %{max}
+        out_of_range_unverified: must be between %{min} and %{max} (unverified domain)
+        not_a_list: must be a list
+        too_many_patterns: allows at most %{count} patterns
+        pattern_too_long: has a pattern longer than %{count} characters
+        invalid_regex: 'has an invalid regular expression: %{pattern}'
+      models:
+        crawling/crawl_config:
+          attributes:
+            start_url:
+              invalid_url: is not a valid http(s) URL
+              outside_domain: must belong to %{host}
+            render_js:
+              not_available: will be available in iteration 1.1
+            terms_accepted:
+              required: you must confirm that the site's terms allow this crawl

@@ -1,5 +1,5 @@
 <div id="pages_more">
   <% if next_cursor %>
-    <%= link_to "Cargar más", crawl_pages_path(crawl, status: status.presence, after: next_cursor), data: { turbo_stream: true } %>
+    <%= link_to t("common.load_more"), crawl_pages_path(crawl, status: status.presence, after: next_cursor), data: { turbo_stream: true } %>
   <% end %>
 </div>

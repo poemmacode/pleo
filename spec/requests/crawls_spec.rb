@@ -21,10 +21,10 @@ RSpec.describe "Crawls" do
 
     get new_project_crawl_path(project, domain_id: domain.id)
     expect(response.body).to include('placeholder="500"', 'placeholder="2.0"')
-    expect(response.body).not_to include("He revisado que los términos")
+    expect(response.body).not_to include("I have checked that the terms")
 
     get new_project_crawl_path(project, domain_id: rival.id)
-    expect(response.body).to include('placeholder="500"', 'placeholder="1.0"', "He revisado que los términos de rival.com")
+    expect(response.body).to include('placeholder="500"', 'placeholder="1.0"', "I have checked that the terms of rival.com")
   end
 
   it "queues a crawl with the given settings, using defaults for empty fields" do
@@ -41,15 +41,15 @@ RSpec.describe "Crawls" do
     create_crawl(max_pages: "0", requests_per_second: "50", exclude_patterns: "(")
 
     expect(response).to have_http_status(:unprocessable_entity)
-    expect(response.body).to include("Máximo de páginas debe estar entre 1 y 50000", "Peticiones por segundo debe estar entre",
-                                     "expresión regular inválida")
+    expect(response.body).to include("Maximum pages must be between 1 and 50000", "Requests per second must be between",
+                                     "invalid regular expression")
   end
 
   it "requires accepting the site's terms for unverified domains and applies their defaults" do
     rival = create(:domain, project:, host_input: "rival.com")
 
     create_crawl(domain_id: rival.id)
-    expect(response.body).to include("debes confirmar que los términos del sitio permiten este rastreo")
+    expect(response.body).to include("you must confirm that the site&#39;s terms allow this crawl")
 
     create_crawl(domain_id: rival.id, terms_accepted: "1")
     crawl = Crawl.last
@@ -63,7 +63,7 @@ RSpec.describe "Crawls" do
     create_crawl
 
     expect(response).to have_http_status(:unprocessable_entity)
-    expect(response.body).to include("resuelve a una dirección bloqueada")
+    expect(response.body).to include("resolves to a blocked address")
   end
 
   it "allows only one active crawl per host" do
@@ -71,7 +71,7 @@ RSpec.describe "Crawls" do
     create_crawl
 
     expect(response).to have_http_status(:unprocessable_entity)
-    expect(response.body).to include("Ya hay un crawl activo para example.com")
+    expect(response.body).to include("A crawl of example.com is already active")
   end
 
   it "pauses, resumes and cancels, rejecting invalid transitions" do
@@ -89,7 +89,7 @@ RSpec.describe "Crawls" do
     expect(crawl.reload.status).to eq("cancelled")
 
     post resume_crawl_path(crawl)
-    expect(flash[:alert]).to include("No se puede hacer eso")
+    expect(flash[:alert]).to include("That is not possible")
   end
 
   it "re-runs the audit only for completed crawls" do

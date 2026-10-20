@@ -30,8 +30,7 @@ module Audit
     def definitions = CHECKS.map(&:definition)
 
     def sync_definitions!
-      CheckDefinition.upsert_all(definitions, unique_by: :key,
-                                 update_only: %i[category severity weight title description how_to_fix])
+      CheckDefinition.upsert_all(definitions, unique_by: :key, update_only: %i[category severity weight])
     end
   end
 end

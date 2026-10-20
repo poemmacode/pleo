@@ -1,43 +1,423 @@
+# Interface texts. Checks live in checks.<locale>.yml. English is the default locale.
 es:
-  number:
-    format:
-      separator: ","
-      delimiter: "."
-      precision: 3
-    human:
-      format:
-        separator: ","
-        delimiter: "."
-        precision: 3
-        significant: true
-        strip_insignificant_zeros: true
-      storage_units:
-        format: "%n %u"
-        units:
-          byte:
-            one: Byte
-            other: Bytes
-          kb: KB
-          mb: MB
-          gb: GB
-          tb: TB
-  date:
-    formats:
-      default: "%d/%m/%Y"
-      short: "%d %b"
-      long: "%d de %B de %Y"
-    day_names: [domingo, lunes, martes, miércoles, jueves, viernes, sábado]
-    abbr_day_names: [dom, lun, mar, mié, jue, vie, sáb]
-    month_names: [~, enero, febrero, marzo, abril, mayo, junio, julio, agosto, septiembre, octubre, noviembre, diciembre]
-    abbr_month_names: [~, ene, feb, mar, abr, may, jun, jul, ago, sep, oct, nov, dic]
-    order: [day, month, year]
-  time:
-    formats:
-      default: "%d/%m/%Y %H:%M"
-      short: "%d %b %H:%M"
-      long: "%d de %B de %Y %H:%M"
-    am: am
-    pm: pm
+  app:
+    name: SEO Platform
+  locales:
+    en: English
+    es: Español
+  common:
+    'yes': sí
+    'no': 'no'
+    load_more: Cargar más
+  shared:
+    locale_switcher:
+      label: Idioma
+  layouts:
+    application:
+      sign_out: Salir
+  sessions:
+    new:
+      page_title: Entrar · SEO Platform
+      email: Correo
+      password: Contraseña
+      submit: Entrar
+      submitting: Entrando…
+    invalid_credentials: Correo o contraseña incorrectos.
+    rate_limited: Demasiados intentos; espera unos minutos.
+  projects:
+    index:
+      page_title: Proyectos · SEO Platform
+      heading: Proyectos
+      new_project: Nuevo proyecto
+      name_placeholder: Mi blog
+      create: Crear
+      empty: Aún no tienes proyectos.
+      domains:
+        one: '%{count} dominio'
+        other: '%{count} dominios'
+      verified:
+        one: '%{count} verificado'
+        other: '%{count} verificados'
+    show:
+      page_title: '%{name} · SEO Platform'
+      back: ← Proyectos
+      domains: Dominios
+      add_domain: Añadir dominio
+      host_placeholder: ejemplo.com
+      add: Añadir
+      crawls: Crawls
+      no_crawls: Todavía no hay crawls.
+      pages:
+        one: '%{count} página'
+        other: '%{count} páginas'
+      health: salud
+      delete: Eliminar proyecto
+      delete_confirm: ¿Eliminar este proyecto, sus dominios y sus crawls?
+    flash:
+      created: Proyecto creado.
+      deleted: Proyecto eliminado.
+  domains:
+    domain:
+      verified: Verificado
+      unverified: Sin verificar
+      new_crawl: Nuevo crawl
+      method: Método de verificación
+      methods:
+        dns_txt: Registro DNS TXT
+        html_file: Archivo en el servidor
+        meta: Etiqueta meta
+      dns_instructions: 'Crea este registro DNS en tu proveedor (la propagación puede tardar unos minutos):'
+      type: Tipo
+      name: Nombre
+      value: Valor
+      file_instructions: 'Publica un archivo de texto en esta URL exacta (sin redirigir a otro host):'
+      content: Contenido
+      meta_instructions_html: 'Añade esta etiqueta dentro de <code>&lt;head&gt;</code> en la página de inicio de %{host}:'
+      verify: Verificar
+      verifying: Verificando…
+      remove: Quitar dominio
+      remove_confirm: ¿Quitar %{host}?
+    flash:
+      rate_limited: Demasiados intentos de verificación; espera un minuto.
+      added: Dominio %{host} añadido. Verifícalo para poder rastrearlo completo.
+      removed: Dominio %{host} eliminado.
+      verified: '%{host} verificado.'
+      verification_failed: '%{host}: %{detail}'
+  domain_verification:
+    invalid_method: Método de verificación desconocido
+    method_not_available: Este método estará disponible en una próxima versión
+    txt_missing: No se encontró el registro TXT %{value} en %{host}
+    dns_error: 'Error al consultar DNS: %{error}'
+    file_mismatch: '%{url} devolvió %{status} sin el contenido esperado (%{value})'
+    meta_missing: No se encontró la etiqueta meta %{name} con el token en %{url}
+    cross_host_redirect: '%{url} redirige a otro host (%{host}); añade ese host como dominio aparte'
+    fetch_error: 'No se pudo descargar: %{errors}'
+  crawls:
+    new:
+      page_title: Nuevo crawl · SEO Platform
+      heading: Nuevo crawl
+      domain: Dominio
+      unverified_option: '%{host} (sin verificar)'
+      unverified_notice: 'Dominio sin verificar: máximo %{pages} páginas a %{rps} peticiones/s. Verifícalo si es tuyo y necesitas rastrearlo completo.'
+      start_url: URL inicial
+      start_url_hint: Vacío = %{url}
+      scope: Alcance
+      scopes:
+        domain: Dominio y subdominios
+        subdomain: Solo este host
+        subfolder: Solo esta carpeta
+      device: Dispositivo
+      devices:
+        desktop: Escritorio
+        mobile: Móvil
+      max_pages: Máximo de páginas
+      requests_per_second: Peticiones por segundo
+      max_depth: Profundidad máxima
+      exclude_patterns: Excluir rutas (regex, una por línea)
+      patterns_hint: Se aplican a ruta + query, p. ej. ^/wp-admin
+      include_patterns: Incluir solo rutas (regex, una por línea)
+      use_sitemaps: Descubrir URLs desde los sitemaps
+      respect_nofollow: No seguir enlaces nofollow
+      run_pagespeed: Medir rendimiento con PageSpeed Insights (móvil)
+      pagespeed_sample: Páginas a medir
+      pagespeed_key_missing_html: 'PageSpeed Insights necesita una API key: define <code>PAGESPEED_API_KEY</code> (ver docs/deploy.md). Sin ella, el rendimiento no se mide.'
+      terms: He revisado que los términos de %{host} permiten este rastreo
+      robots_note: Se respeta siempre robots.txt y su Crawl-delay. El bot se identifica como SEOPlatformBot.
+      submit: Iniciar crawl
+      submitting: Iniciando…
+    show:
+      page_title: Crawl de %{host} · SEO Platform
+      back: ← Proyecto
+      heading: Crawl de %{host}
+      loading_pages: Cargando páginas…
+    progress:
+      rate: '%{rps} pet./s'
+      discovered: Descubiertas
+      crawled: Rastreadas
+      failed: Con error
+      skipped: Omitidas
+      limit: Límite
+      pause: Pausar
+      resume: Reanudar
+      cancel: Cancelar
+      cancel_confirm: ¿Cancelar el crawl?
+      status_codes: Códigos de estado
+      no_pages: Aún no hay páginas.
+      no_response: sin respuesta
+      robots_and_sitemaps: robots.txt y sitemaps
+      reading_sitemaps: Leyendo sitemaps…
+      sitemap_result: '%{status}: %{urls} URLs, %{added} nuevas'
+    audit:
+      heading: Auditoría
+      rerun: Repetir auditoría
+      duplicates: Ver duplicados
+      failed: 'La auditoría falló: %{error}'
+      health: Salud del sitio
+      compared_to: frente al crawl del %{date} (%{score})
+      no_issues: No se encontraron problemas.
+      priority_hint: 'Prioridad 0–100: gravedad, alcance e importancia de las páginas'
+      priority: prioridad %{value}
+      how_to_fix: 'Cómo arreglarlo:'
+      loading: Cargando…
+      analyzing: Analizando las páginas…
+    performance:
+      no_key_html: 'Rendimiento no medido: falta la API key de PageSpeed Insights (<code>PAGESPEED_API_KEY</code>).'
+      heading: Rendimiento móvil (PageSpeed Insights)
+      limited:
+        one: Se alcanzó el límite diario de mediciones; solo se midió %{count} página.
+        other: Se alcanzó el límite diario de mediciones; solo se midieron %{count} páginas.
+      page: Página
+      score: Puntuación
+      real_users: Usuarios reales
+      top_opportunity: 'Mejora principal: %{title} (−%{savings})'
+    reports:
+      heading: Exportar
+      failed: 'falló: %{error}'
+      generating: generando…
+    pages:
+      index:
+        heading: Páginas
+        status: Estado
+        filter: Filtrar
+        depth: Prof.
+        empty: Sin páginas para este filtro.
+      show:
+        page_title: '%{url} · SEO Platform'
+        back: ← Crawl
+        status: Estado
+        indexable: Indexable
+        not_indexable: no (%{reason})
+        language: Idioma
+        words: Palabras
+        depth: Profundidad
+        inlinks: Enlaces entrantes
+        images_missing_alt: Imágenes sin alt
+        images_count: '%{missing} de %{total}'
+        field_data: 'Usuarios reales (CrUX, p75): %{summary}'
+        opportunities: Oportunidades
+        savings: ahorro estimado %{savings}
+        issues: Problemas
+        no_issues: Ninguno.
+        headings: Encabezados
+        structured_data: Datos estructurados
+        no_markup: Sin marcado.
+        no_type: (sin tipo)
+        invalid_syntax: sintaxis inválida
+        outlinks: Enlaces salientes (%{count})
+        link_type: Tipo
+        internal: interno
+        external: externo
+        inlinks_list: Enlaces entrantes (%{count})
+    issues:
+      finding:
+        whole_site: Todo el sitio
+    duplicates:
+      index:
+        page_title: Duplicados · SEO Platform
+        back: ← Crawl
+        heading: Duplicados en %{host}
+        types:
+          title: Títulos
+          description: Descripciones
+          content: Contenido
+        empty: No hay duplicados de este tipo entre las páginas indexables.
+        pages:
+          one: '%{count} página'
+          other: '%{count} páginas'
+    statuses:
+      queued: En cola
+      running: Rastreando
+      paused: En pausa
+      completed: Completado
+      failed: Fallido
+      cancelled: Cancelado
+    reasons:
+      user: por el usuario
+      server_overloaded: el servidor respondía con errores; se redujo la velocidad y se pausó
+      max_pages_reached: se alcanzó el máximo de páginas
+      robots_unreachable: 'robots.txt no responde: no se rastrea nada (RFC 9309)'
+    skip_reasons:
+      robots: Bloqueadas por robots.txt
+      limit: Fuera del límite de páginas
+      unsafe_host: Host no permitido (IP privada)
+      error: Error repetido
+      cancelled: Crawl cancelado
+    robots_outcomes:
+      parsed: robots.txt leído
+      unavailable: sin robots.txt (todo permitido)
+      unreachable: robots.txt inaccesible (nada permitido)
+    page_filters:
+      all: Todos
+      2xx: 2xx
+      3xx: 3xx
+      4xx: 4xx
+      5xx: 5xx
+      error: Sin respuesta
+    flash:
+      add_domain_first: Añade primero un dominio al proyecto.
+      audit_needs_completed: Solo se puede repetir la auditoría de un crawl completado.
+      audit_started: Auditoría en marcha.
+      rate_limited: Demasiados crawls creados; espera un minuto.
+      paused: Crawl en pausa.
+      resumed: Crawl reanudado.
+      cancelled: Crawl cancelado.
+      invalid_transition: No se puede hacer eso con un crawl %{status}.
+    create_errors:
+      crawl_in_progress: Ya hay un crawl activo para %{host}
+      too_many_crawls: Máximo %{count} crawls activos a la vez
+      unsafe_target: 'La URL inicial no está permitida: %{detail}'
+      unreachable: 'No se puede acceder a la URL inicial: %{detail}'
+  audit:
+    no_change: = sin cambios
+    severities:
+      error: Error
+      warning: Aviso
+      notice: Nota
+    severities_plural:
+      error: Errores
+      warning: Avisos
+      notice: Notas
+    categories:
+      crawlability: Rastreabilidad
+      indexability: Indexabilidad
+      links: Enlaces
+      metadata: Metadatos
+      content: Contenido
+      https: HTTPS
+      structured_data: Datos estructurados
+      mobile: Móvil
+      performance: Rendimiento
+      ai_search: Búsqueda con IA
+  performance:
+    no_field_data: sin datos de usuarios reales
+    field_summary: '%{category} (%{where}): LCP %{lcp}, INP %{inp}, CLS %{cls}'
+    field_categories:
+      FAST: rápida
+      AVERAGE: mejorable
+      SLOW: lenta
+    field_scopes:
+      url: esta página
+      origin: todo el sitio
+  reports:
+    kinds:
+      pages_csv: Páginas (CSV)
+      issues_csv: Problemas (CSV)
+      xlsx: Informe completo (Excel)
+      pdf: Resumen ejecutivo (PDF)
+    flash:
+      audit_not_done: Los informes están disponibles cuando termina la auditoría.
+      generating: Generando %{report}…
+      not_ready: El informe aún no está listo.
+    whole_site: Todo el sitio
+    internal: interno
+    external: externo
+    columns:
+      url: URL
+      status: Estado HTTP
+      error: Error de descarga
+      redirect: Redirige a
+      indexable: Indexable
+      not_indexable_reason: Motivo no indexable
+      depth: Profundidad
+      in_sitemap: En sitemap
+      title: Title
+      title_length: Longitud title
+      meta_description: Meta description
+      description_length: Longitud description
+      h1: H1
+      canonical: Canonical
+      meta_robots: Meta robots
+      words: Palabras
+      inlinks: Enlaces entrantes
+      internal_outlinks: Enlaces internos salientes
+      external_outlinks: Enlaces externos
+      pagerank: PageRank interno
+      response_ms: Tiempo (ms)
+      bytes: Bytes
+      content_type: Tipo de contenido
+      priority: Prioridad
+      severity: Severidad
+      category: Categoría
+      check: Check
+      problem: Problema
+      details: Detalles
+      how_to_fix: Cómo arreglarlo
+      findings: Hallazgos
+      score: Puntuación
+      page: Página
+      source_page: Página de origen
+      link: Enlace
+      status_or_error: Estado o error
+      link_type: Tipo
+      duplicate_type: Tipo
+      shared_value: Valor compartido
+      syntax: Sintaxis
+      types: Tipos
+      valid_syntax: Sintaxis válida
+      errors: Errores
+      lcp_ms: LCP (ms)
+      cls: CLS
+      tbt_ms: TBT (ms)
+      fcp_ms: FCP (ms)
+      speed_index_ms: Speed Index (ms)
+      ttfb_ms: TTFB (ms)
+      field_scope: Datos de campo
+      field_category: Categoría de campo
+      field_lcp_ms: LCP campo (ms)
+      field_inp_ms: INP campo (ms)
+      field_cls: CLS campo
+      top_opportunity: Mejora principal
+    workbook:
+      sheets:
+        summary: Resumen
+        problems: Problemas
+        findings: Hallazgos
+        pages: Páginas
+        broken_links: Enlaces rotos
+        duplicates: Duplicados
+        structured_data: Datos estructurados
+        performance: Rendimiento
+      title: Auditoría SEO de %{host}
+      date: Fecha
+      start_url: URL inicial
+      pages_crawled: Páginas rastreadas
+      health: Salud del sitio (0–100)
+      previous_crawl: Crawl anterior
+    pdf:
+      title: Auditoría SEO de %{host}
+      heading: Auditoría SEO
+      subtitle:
+        one: Crawl del %{date} · %{count} página
+        other: Crawl del %{date} · %{count} páginas
+      health: 'Salud del sitio: %{score} / 100'
+      compared_to: '%{delta} frente al crawl anterior (%{previous})'
+      findings: 'Hallazgos: %{errors} errores, %{warnings} avisos, %{notices} notas'
+      fix_first: Qué arreglar primero
+      fix_first_hint: 'Ordenado por prioridad: gravedad, cuántas páginas afecta y lo importantes que son.'
+      no_problems: No se encontraron problemas.
+      problem_meta: '%{severity} · %{findings} · prioridad %{priority}'
+      findings_count:
+        one: '%{count} hallazgo'
+        other: '%{count} hallazgos'
+      performance: Rendimiento móvil (PageSpeed Insights)
+      performance_average:
+        one: 'Puntuación media de %{count} página medida: %{average}/100. Las más lentas:'
+        other: 'Puntuación media de %{count} páginas medidas: %{average}/100. Las más lentas:'
+      crawl_data: Datos del rastreo
+      start_url: 'URL inicial: %{url}'
+      url_counts: 'URLs descubiertas: %{discovered} · rastreadas: %{crawled} · omitidas: %{skipped}'
+      status_codes: 'Códigos HTTP: %{codes}'
+      footer: Página <page> de <total> · generado el %{generated}
+  bot:
+    show:
+      intro: SEOPlatformBot es el rastreador de una herramienta de auditoría SEO personal y no comercial. Visita sitios para revisar problemas técnicos (enlaces rotos, metadatos, datos estructurados…) a petición de su usuario.
+      behaviour: Cómo se comporta
+      robots_html: Respeta siempre <code>robots.txt</code> (RFC 9309), incluido <code>Crawl-delay</code>. Si robots.txt no responde, no rastrea.
+      unverified_limits: 'Sitios no verificados por su propietario: como máximo %{pages} páginas a %{rps} peticiones por segundo.'
+      backoff_html: Reduce la velocidad o se detiene solo si el servidor responde con errores 429 o 5xx, y respeta <code>Retry-After</code>.
+      no_js: No ejecuta JavaScript, no envía formularios y no intenta saltarse inicios de sesión ni CAPTCHAs.
+      block: Bloquearlo
+      block_how_html: 'Añade a tu <code>robots.txt</code>:'
   activerecord:
     models:
       user: Usuario
@@ -47,12 +427,28 @@ es:
       user:
         email: Correo
         password: Contraseña
+        locale: Idioma
       project:
         name: Nombre
         monthly_api_budget_cents: Presupuesto mensual de API
       domain:
         host: Host
         verification_method: Método de verificación
+        project: Proyecto
+    errors:
+      models:
+        domain:
+          attributes:
+            host:
+              empty: no puede estar vacío
+              ip_address: no puede ser una dirección IP
+              invalid_hostname: no es un nombre de host válido
+              internal_host: es un host interno o reservado
+              not_registrable: no pertenece a un dominio público registrable
+              unsupported_scheme: solo se admiten http y https
+              credentials: no debe incluir usuario ni contraseña
+              port: no debe incluir un puerto
+              invalid_idn: no es un nombre de dominio internacional válido
   activemodel:
     attributes:
       crawling/crawl_config:
@@ -67,8 +463,108 @@ es:
         render_js: Renderizado JS
         terms_accepted: Términos del sitio
         pagespeed_sample: Páginas a medir
+    errors:
+      messages:
+        out_of_range: debe estar entre %{min} y %{max}
+        out_of_range_unverified: debe estar entre %{min} y %{max} (dominio sin verificar)
+        not_a_list: debe ser una lista
+        too_many_patterns: admite como máximo %{count} patrones
+        pattern_too_long: tiene un patrón de más de %{count} caracteres
+        invalid_regex: 'tiene una expresión regular inválida: %{pattern}'
+      models:
+        crawling/crawl_config:
+          attributes:
+            start_url:
+              invalid_url: no es una URL http(s) válida
+              outside_domain: debe pertenecer a %{host}
+            render_js:
+              not_available: estará disponible en la iteración 1.1
+            terms_accepted:
+              required: debes confirmar que los términos del sitio permiten este rastreo
+  date:
+    formats:
+      default: '%d/%m/%Y'
+      short: '%d %b'
+      long: '%d de %B de %Y'
+    day_names:
+    - domingo
+    - lunes
+    - martes
+    - miércoles
+    - jueves
+    - viernes
+    - sábado
+    abbr_day_names:
+    - dom
+    - lun
+    - mar
+    - mié
+    - jue
+    - vie
+    - sáb
+    month_names:
+    - null
+    - enero
+    - febrero
+    - marzo
+    - abril
+    - mayo
+    - junio
+    - julio
+    - agosto
+    - septiembre
+    - octubre
+    - noviembre
+    - diciembre
+    abbr_month_names:
+    - null
+    - ene
+    - feb
+    - mar
+    - abr
+    - may
+    - jun
+    - jul
+    - ago
+    - sep
+    - oct
+    - nov
+    - dic
+    order:
+    - day
+    - month
+    - year
+  time:
+    formats:
+      default: '%d/%m/%Y %H:%M'
+      short: '%d %b %H:%M'
+      long: '%d de %B de %Y %H:%M'
+    am: am
+    pm: pm
+  number:
+    format:
+      separator: ','
+      delimiter: .
+      precision: 3
+    human:
+      format:
+        separator: ','
+        delimiter: .
+        precision: 3
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: '%n %u'
+        units:
+          byte:
+            one: Byte
+            other: Bytes
+          kb: KB
+          mb: MB
+          gb: GB
+          tb: TB
   errors:
-    format: "%{attribute} %{message}"
+    format: '%{attribute} %{message}'
     messages:
       blank: no puede estar vacío
       taken: ya está en uso

@@ -1,17 +1,17 @@
 <% content_for :title, "SEOPlatformBot" %>
+<% limits = Crawling::CrawlConfig::LIMITS[:unverified] %>
 <main class="narrow">
   <h1>SEOPlatformBot</h1>
-  <p>SEOPlatformBot es el rastreador de una herramienta de auditoría SEO personal y no comercial. Visita sitios para revisar
-    problemas técnicos (enlaces rotos, metadatos, datos estructurados…) a petición de su usuario.</p>
-  <h2>Cómo se comporta</h2>
+  <p><%= t(".intro") %></p>
+  <h2><%= t(".behaviour") %></h2>
   <ul>
-    <li>Respeta siempre <code>robots.txt</code> (RFC 9309), incluido <code>Crawl-delay</code>. Si robots.txt no responde, no rastrea.</li>
-    <li>Sitios no verificados por su propietario: como máximo 2 000 páginas a 2 peticiones por segundo.</li>
-    <li>Reduce la velocidad o se detiene solo si el servidor responde con errores 429 o 5xx, y respeta <code>Retry-After</code>.</li>
-    <li>No ejecuta JavaScript, no envía formularios y no intenta saltarse inicios de sesión ni CAPTCHAs.</li>
+    <li><%= t(".robots_html") %></li>
+    <li><%= t(".unverified_limits", pages: number_with_delimiter(limits[:max_pages]), rps: format_score(limits[:max_rps])) %></li>
+    <li><%= t(".backoff_html") %></li>
+    <li><%= t(".no_js") %></li>
   </ul>
-  <h2>Bloquearlo</h2>
-  <p>Añade a tu <code>robots.txt</code>:</p>
+  <h2><%= t(".block") %></h2>
+  <p><%= t(".block_how_html") %></p>
   <pre><code>User-agent: SEOPlatformBot
 Disallow: /</code></pre>
 </main>

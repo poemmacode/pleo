@@ -2,11 +2,12 @@ require "rails_helper"
 
 RSpec.describe Crawling::ProgressBroadcaster do
   let(:crawl) { audit_crawl.tap { _1.update!(status: "running") } }
-  let(:stream) { "#{crawl.to_gid_param}:progress" }
   let(:pubsub) { ActionCable.server.pubsub }
 
   # Each broadcast is a <turbo-stream> element serialized as a JSON string by the test adapter.
-  def sent = pubsub.broadcasts(stream).map { Nokogiri::HTML.fragment(JSON.parse(_1)).at_css("turbo-stream") }
+  def sent(locale = :en)
+    pubsub.broadcasts("#{crawl.to_gid_param}:progress:#{locale}").map { Nokogiri::HTML.fragment(JSON.parse(_1)).at_css("turbo-stream") }
+  end
 
   before do
     clear_test_redis("seo:broadcast:*")
@@ -30,11 +31,12 @@ RSpec.describe Crawling::ProgressBroadcaster do
       .to eq([ [ "replace", "progress_crawl_#{crawl.id}" ], [ "replace", "audit_crawl_#{crawl.id}" ] ])
   end
 
-  it "renders the current counters and controls without a request" do
+  it "renders the current counters and controls without a request, once per language" do
     crawl.update!(pages_crawled: 7)
 
     described_class.call(crawl, force: true)
 
-    expect(sent.first.to_html).to include("<dd>7</dd>", "Rastreando", "Pausar")
+    expect(sent(:en).first.to_html).to include("<dd>7</dd>", "Crawling", "Pause")
+    expect(sent(:es).first.to_html).to include("<dd>7</dd>", "Rastreando", "Pausar")
   end
 end

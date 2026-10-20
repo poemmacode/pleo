@@ -82,11 +82,11 @@ RSpec.describe SafeHttp::Client do
   end
 
   it "connects to the validated IP and sends the original Host header and bot User-Agent" do
-    server.route("/hello", [ 200, { "Content-Type" => "text/html" }, "<h1>hola</h1>" ])
+    server.route("/hello", [ 200, { "Content-Type" => "text/html" }, "<h1>hello</h1>" ])
 
     response = client.get(url("site.example.com", "/hello"))
 
-    expect(response).to have_attributes(status: 200, body: "<h1>hola</h1>", ip: "127.0.0.1", truncated: false)
+    expect(response).to have_attributes(status: 200, body: "<h1>hello</h1>", ip: "127.0.0.1", truncated: false)
     request = server.received.last
     expect(request[:headers]["host"]).to eq("site.example.com:#{port}")
     expect(request[:headers]["user-agent"]).to start_with("SEOPlatformBot/")

@@ -14,7 +14,7 @@ RSpec.describe Domain do
     domain = build(:domain, host_input: "127.0.0.1")
 
     expect(domain).not_to be_valid
-    expect(domain.errors[:host]).to include("no puede ser una dirección IP")
+    expect(domain.errors[:host]).to include("can't be an IP address")
   end
 
   it "rejects the same host twice in a project but allows it in another project" do
