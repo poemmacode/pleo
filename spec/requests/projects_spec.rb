@@ -19,6 +19,18 @@ RSpec.describe "Projects" do
     expect(Project.exists?(project.id)).to be(false)
   end
 
+  it "shows a project with its crawls" do
+    project = create(:project, user:)
+    domain = create(:domain, project:, host_input: "example.com")
+    Crawl.create!(project:, domain:, config: { "start_url" => "https://example.com/" }, current_rps: 1,
+                  status: "completed", pages_crawled: 12, created_at: Time.utc(2026, 10, 20, 9, 5))
+
+    get project_path(project)
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("example.com · 20 oct 09:05", "Completado · 12 páginas")
+  end
+
   it "re-renders the list with the validation error" do
     post projects_path, params: { project: { name: "" } }
 

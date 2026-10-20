@@ -43,6 +43,9 @@ module SeoPlatform
 
     config.active_job.queue_adapter = :sidekiq
 
+    # Dates are shown in this zone (e.g. TIME_ZONE=America/Mexico_City); stored in UTC.
+    config.time_zone = ENV.fetch("TIME_ZONE", "UTC")
+
     config.i18n.available_locales = %i[es en]
     config.i18n.default_locale = :es
   end
