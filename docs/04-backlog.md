@@ -46,7 +46,7 @@ Formato: **ID · historia** — criterios de aceptación (CA). Estimación en d�
 - **E.1 · PSI** — CA: con API key configurada, mide la muestra definida en 03 §7; guarda métricas de laboratorio y de campo si existen; errores de PSI (p. ej. URL no pública) se registran sin fallar el crawl; respetando un tope diario configurable; tests con respuestas grabadas (VCR).
 - **E.2 · Checks de rendimiento y móvil** — CA: `perf.*` y `mobile.viewport_missing` generados a partir de E.1/C.1.
 
-### Épica F — Informes (≈4 d)
+### Épica F — Informes (≈4 d) — ✅ implementada (ver [ADR 0009](adr/0009-informes.md))
 
 - **F.1 · CSV/XLSX** — CA: exportaciones de 03 §8 se generan en < 60 s para 10k páginas; columnas documentadas; caracteres UTF-8 correctos en Excel (BOM en CSV).
 - **F.2 · PDF** — CA: resumen ejecutivo con score, categorías, top-10 issues priorizados y recomendaciones; se genera sin dependencias de red externas.

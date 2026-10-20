@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_20_050354) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_20_051854) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -241,6 +241,21 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_20_050354) do
     t.index ["user_id"], name: "index_projects_on_user_id"
   end
 
+  create_table "reports", force: :cascade do |t|
+    t.bigint "crawl_id", null: false
+    t.string "kind", null: false
+    t.string "status", default: "pending", null: false
+    t.string "filename"
+    t.string "content_type"
+    t.binary "data"
+    t.integer "byte_size"
+    t.string "error"
+    t.datetime "generated_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["crawl_id"], name: "index_reports_on_crawl_id"
+  end
+
   create_table "sessions", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "ip_address"
@@ -276,5 +291,6 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_20_050354) do
   add_foreign_key "performance_results", "crawls", on_delete: :cascade
   add_foreign_key "performance_results", "pages", on_delete: :cascade
   add_foreign_key "projects", "users", on_delete: :cascade
+  add_foreign_key "reports", "crawls", on_delete: :cascade
   add_foreign_key "sessions", "users", on_delete: :cascade
 end

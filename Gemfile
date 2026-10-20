@@ -39,6 +39,11 @@ gem "simpleidn", "~> 0.2"
 # HTML parsing (verification meta tag now, page extraction in the crawler)
 gem "nokogiri", "~> 1.18"
 
+# Exportable reports (Épica F): Excel workbooks and PDF summaries, pure Ruby
+gem "caxlsx", "~> 4.1"
+gem "prawn", "~> 2.5"
+gem "prawn-table", "~> 0.2"
+
 # Use Rack CORS for handling Cross-Origin Resource Sharing (CORS), making cross-origin Ajax possible
 # gem "rack-cors"
 

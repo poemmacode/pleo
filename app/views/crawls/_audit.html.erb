@@ -45,6 +45,7 @@
             <div><dt><%= AuditHelper::SEVERITY_LABELS[severity] %></dt><dd class="sev-<%= severity %>"><%= count %></dd></div>
           <% end %>
         </dl>
+        <%= render "crawls/reports", crawl: %>
         <%= render "crawls/performance", crawl: %>
         <% if summary.entries.empty? %><p>No se encontraron problemas.</p><% end %>
         <ul class="plain issues">

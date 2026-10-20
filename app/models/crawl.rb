@@ -10,6 +10,7 @@ class Crawl < ApplicationRecord
   has_many :pages, dependent: :delete_all
   has_many :issues, dependent: :delete_all
   has_many :performance_results, dependent: :delete_all
+  has_many :reports, dependent: :delete_all
 
   validates :status, inclusion: { in: STATUSES }
 

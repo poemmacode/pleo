@@ -24,5 +24,6 @@ Rails.application.routes.draw do
     resources :issues, only: :show, param: :check_key, controller: "crawls/issues",
       constraints: { check_key: /[a-z0-9_.]+/ }, format: false
     resources :duplicates, only: :index, controller: "crawls/duplicates"
+    resources :reports, only: %i[create show], controller: "crawls/reports"
   end
 end

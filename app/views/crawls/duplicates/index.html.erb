@@ -3,7 +3,7 @@
   <p><%= link_to "← Crawl", @crawl %></p>
   <h1>Duplicados en <%= @crawl.domain.host %></h1>
   <nav class="row tabs">
-    <% Crawls::DuplicatesController::TYPES.each do |type, label| %>
+    <% Audit::Duplicates::TYPES.each do |type, label| %>
       <%= link_to label, crawl_duplicates_path(@crawl, type:), class: ("active" if type == @type), "aria-current": ("page" if type == @type) %>
     <% end %>
   </nav>
@@ -11,7 +11,7 @@
   <ul class="list">
     <% @groups.each do |pages| %>
       <li class="card stack">
-        <strong><%= @type == "description" ? pages.first.meta_description : pages.first.title %></strong>
+        <strong><%= Audit::Duplicates.label(@type, pages) %></strong>
         <span class="muted"><%= pages.size %> páginas</span>
         <ul class="plain">
           <% pages.each do |page| %><li><%= link_to page.url, crawl_page_path(@crawl, page) %></li><% end %>
