@@ -7,7 +7,9 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Pinned: setup-ruby only ships the latest 3.3.x patch for ubuntu-26.04 (ubuntu-latest), and the
+    # app is on Ruby 3.3.0 until the upgrade in ADR 0002. Move back to ubuntu-latest after that upgrade.
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16.4
