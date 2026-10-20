@@ -125,6 +125,7 @@ module Audit
       end
 
       class SitemapMissing < Check
+        site_wide!
         define key: "sitemap.missing", category: "crawlability", severity: "warning", weight: 3,
           title: "No se encontró sitemap",
           description: "Ni robots.txt declara un sitemap ni existe /sitemap.xml. El sitemap ayuda a descubrir páginas nuevas o poco enlazadas.",

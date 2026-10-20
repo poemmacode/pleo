@@ -25,6 +25,7 @@ module Audit
           rows.each_slice(INSERT_BATCH) { Issue.insert_all(_1) }
         end
       end
+      Scoring.call(crawl)
       crawl.update!(audit_status: "done", audited_at: Time.current)
       Crawling::ProgressBroadcaster.call(crawl, force: true)
     rescue StandardError => e

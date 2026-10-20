@@ -1,5 +1,5 @@
 <div id="<%= "more_#{definition.key.parameterize}" %>">
-  <% if next_cursor %>
-    <%= link_to "Cargar más", crawl_issue_path(crawl, definition.key, after: next_cursor), class: "secondary-link", data: { turbo_stream: true } %>
+  <% if next_page %>
+    <%= link_to "Cargar más", crawl_issue_path(crawl, definition.key, page: next_page), data: { turbo_stream: true } %>
   <% end %>
 </div>

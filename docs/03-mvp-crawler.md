@@ -185,22 +185,17 @@ Los textos de "cómo arreglarlo" se redactan desde cero en español; no se copia
 
 ## 6. Puntuación y priorización (fórmulas propias)
 
-**Health score (0–100)**, por categoría y global:
+Implementadas en `Audit::Scoring`. La versión definitiva y su justificación están en [ADR 0007](adr/0007-puntuacion-y-prioridad.md):
 
 ```
-penalización(check) = peso(check) × min(1, páginas_afectadas / páginas_indexables_rastreadas) ^ 0.5
-score_categoria    = 100 × (1 − Σ penalización / Σ peso_de_checks_aplicables)
-health_score       = media ponderada de categorías (rastreabilidad 25, indexabilidad 20, enlaces 15,
-                     metadatos 15, contenido 10, https 5, schema 5, rendimiento 5)
+cobertura    = 1 si el check es de sitio entero; si no, min(1, páginas afectadas / páginas rastreadas)
+penalización = peso × factor (error/aviso 1, nota 0,25) × √cobertura
+categoría    = 100 × (1 − Σ penalización / Σ peso × factor)
+salud        = Σ categoría × peso de categoría / 100
+prioridad    = 10 × peso × factor × (0,5 × cobertura + 0,5 × importancia de la página)
 ```
-La raíz cuadrada evita que un issue en el 1 % de páginas sea irrelevante y que uno en el 100 % sea lineal. Los notices pesan pero no bajan más de 5 puntos en total.
 
-**Prioridad de un issue (0–100)**:
-```
-priority = 10 × peso(check) × (0.5 × cobertura + 0.5 × importancia_media_páginas)
-importancia_página = normalizado(PageRank interno)          # MVP
-                   → 0.5 × PageRank + 0.5 × impresiones GSC  # cuando haya GSC
-```
+Pesos de categoría: rastreabilidad 22, indexabilidad 18, enlaces 14, metadatos 14, contenido 10, HTTPS 6, datos estructurados 5, móvil 5, rendimiento 3 y búsqueda con IA 3. La importancia de una página es su PageRank interno relativo al máximo (o, en su defecto, sus enlaces entrantes); cuando haya GSC se combinará con impresiones.
 
 ## 7. Rendimiento con PageSpeed Insights
 

@@ -15,6 +15,12 @@ module Audit
       end
 
       def key = definition[:key]
+
+      # Findings that describe the whole site (no sitemap, AI bots blocked…) count as full coverage
+      # in the health score instead of a share of pages.
+      def site_wide! = @site_wide = true
+
+      def site_wide? = @site_wide == true
     end
 
     attr_reader :context

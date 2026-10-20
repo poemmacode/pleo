@@ -2,5 +2,5 @@
   <ul class="plain" id="<%= "findings_#{@definition.key.parameterize}" %>">
     <%= render partial: "crawls/issues/finding", collection: @findings, locals: { crawl: @crawl } %>
   </ul>
-  <%= render "crawls/issues/more", crawl: @crawl, definition: @definition, next_cursor: @next_cursor %>
+  <%= render "crawls/issues/more", crawl: @crawl, definition: @definition, next_page: @next_page %>
 <% end %>

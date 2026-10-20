@@ -12,30 +12,36 @@ RSpec.describe "Crawl results (pages, issues, duplicates)" do
     Issue.create!(crawl:, check_key: key, page:, url:, details:)
   end
 
-  it "shows the audit summary, most severe first, with Spanish guidance" do
+  it "shows the health score, categories, comparison and issues by priority with Spanish guidance" do
+    previous = Crawl.create!(project: crawl.project, domain: crawl.domain, status: "completed", current_rps: 1, health_score: 70.0,
+                             config: crawl.config, created_at: 1.week.ago)
     a = audit_page("/a")
     add_issue("title.too_long", page: a)
     add_issue("http.4xx", page: a)
+    Audit::Scoring.call(crawl)
     crawl.update!(audit_status: "done")
 
     get crawl_path(crawl)
 
     body = response.body
-    expect(body).to include("Páginas con error 4xx", "Título demasiado largo", "Cómo arreglarlo")
+    expect(body).to include("Salud del sitio", "Rastreabilidad", "Metadatos", "Páginas con error 4xx", "Título demasiado largo",
+                            "Cómo arreglarlo", "frente al crawl del", "(70)")
+    expect(body).to include(crawl.health_score > 70 ? "▲ +" : "▼ ")
     expect(body.index("Páginas con error 4xx")).to be < body.index("Título demasiado largo")
+    expect(previous.reload.health_score).to eq(70)
     expect(body).to include(%(src="#{crawl_issue_path(crawl, "http.4xx")}"))
   end
 
-  it "lists the findings of one check in its frame and appends more with Turbo Streams" do
+  it "lists the findings of one check, most important first, and appends more with Turbo Streams" do
     stub_const("CrawlScoped::PAGE_SIZE", 2)
     3.times { add_issue("http.4xx", page: audit_page("/p#{_1}"), details: { "status" => 404 }) }
 
     get crawl_issue_path(crawl, "http.4xx")
     expect(response.body).to include('<turbo-frame id="issue_http-4xx"', "https://example.com/p0", "status: 404")
     expect(response.body).not_to include("https://example.com/p2")
-    cursor = response.body[/after=(\d+)/, 1]
+    expect(response.body).to include("page=2")
 
-    get crawl_issue_path(crawl, "http.4xx", after: cursor), headers: { "Accept" => "text/vnd.turbo-stream.html" }
+    get crawl_issue_path(crawl, "http.4xx", page: 2), headers: { "Accept" => "text/vnd.turbo-stream.html" }
     expect(response.media_type).to eq("text/vnd.turbo-stream.html")
     expect(response.body).to include('action="append" target="findings_http-4xx"', "https://example.com/p2")
 

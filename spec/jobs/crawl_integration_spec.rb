@@ -83,6 +83,9 @@ RSpec.describe "Crawling a site end to end", type: :job do
 
     actual = crawl.issues.group_by(&:check_key).transform_values { |issues| issues.map { _1.url.delete_prefix(origin) }.sort }
     expect(crawl.audit_status).to eq("done")
+    expect(crawl.health_score).to be_between(0, 100)
+    expect(crawl.category_scores.keys).to match_array(Audit::Scoring::CATEGORY_WEIGHTS.keys)
+    expect(crawl.issues.where(priority_score: nil)).not_to exist
     expect(actual).to eq(expected.transform_values(&:sort))
     expect(crawl.pages.find_by!(url: "#{origin}/about")).to have_attributes(inlinks_count: 1, internal_pagerank: a_value > 0)
   end

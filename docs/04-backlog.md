@@ -36,7 +36,7 @@ Formato: **ID · historia** — criterios de aceptación (CA). Estimación en d�
 - **C.5 · Catálogo de checks** — CA: todos los checks de 03 §5 implementados como clases con spec propia (fixture positivo y negativo); `check_definitions` sembrado con textos en español.
 - **C.6 · Checks de sitio** — CA: huérfanas, profundidad, PageRank interno (20 iteraciones, damping 0,85) calculados en `FinalizeCrawlJob` en < 60 s para 50k páginas en la máquina de desarrollo.
 
-### Épica D — Score y priorización (≈3 d)
+### Épica D — Score y priorización (≈3 d) — ✅ implementada (ver [ADR 0007](adr/0007-puntuacion-y-prioridad.md))
 
 - **D.1 · Health score** — CA: fórmula de 03 §6 implementada; tests con escenarios conocidos (sitio perfecto = 100; todos los checks fallando al 100 % = 0); score por categoría y global expuestos en `/issues/summary`.
 - **D.2 · Priorización** — CA: `/issues` ordenado por `priority_score` desc por defecto; cada issue incluye `how_to_fix`.

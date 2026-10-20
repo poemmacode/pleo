@@ -126,3 +126,18 @@ details > summary { list-style: none; cursor: pointer; }
 details > summary::-webkit-details-marker { display: none; }
 .tabs a { padding: 4px 10px; border-radius: 6px; text-decoration: none; }
 .tabs a.active { background: var(--accent); color: var(--accent-text); }
+
+.health { display: flex; gap: 16px; align-items: center; }
+.health-score { font-variant-numeric: tabular-nums; }
+.health-score .value { font-size: 2.6rem; font-weight: 700; line-height: 1; }
+.health-score .out-of { color: var(--muted); margin-left: 2px; }
+.health-good { color: var(--ok); }
+.health-fair { color: var(--warn); }
+.health-poor { color: var(--danger); }
+.health-none { color: var(--muted); }
+.delta-up { color: var(--ok); }
+.delta-down { color: var(--danger); }
+.categories li { display: grid; grid-template-columns: minmax(120px, 180px) 1fr 3.5em; gap: 10px; align-items: center; }
+.categories .bar { height: 8px; border-radius: 999px; background: var(--border); overflow: hidden; }
+.categories .bar > span { display: block; height: 100%; background: currentColor; }
+.categories .num { text-align: right; font-variant-numeric: tabular-nums; }

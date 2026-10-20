@@ -27,7 +27,10 @@
       <% crawls.each do |crawl| %>
         <li class="card">
           <%= link_to "#{crawl.domain.host} · #{l(crawl.created_at, format: :short)}", crawl %>
-          <span class="muted"><%= crawl_status_label(crawl.status) %> · <%= pluralize(crawl.pages_crawled, "página") %></span>
+          <span class="muted">
+            <%= crawl_status_label(crawl.status) %> · <%= pluralize(crawl.pages_crawled, "página") %>
+            <% if crawl.health_score %> · salud <strong class="<%= health_class(crawl.health_score) %>"><%= format_score(crawl.health_score) %></strong><% end %>
+          </span>
         </li>
       <% end %>
     </ul>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_17_072055) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_20_044812) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "citext"
   enable_extension "pg_catalog.plpgsql"
@@ -81,6 +81,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_17_072055) do
     t.string "audit_error"
     t.datetime "audited_at"
     t.jsonb "site_facts", default: {}, null: false
+    t.float "health_score"
+    t.jsonb "category_scores", default: {}, null: false
     t.index ["domain_id", "status"], name: "index_crawls_on_domain_id_and_status"
     t.index ["domain_id"], name: "index_crawls_on_domain_id"
     t.index ["project_id"], name: "index_crawls_on_project_id"
@@ -117,6 +119,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_17_072055) do
     t.text "url"
     t.jsonb "details", default: {}, null: false
     t.float "priority_score"
+    t.index ["crawl_id", "check_key", "priority_score"], name: "index_issues_on_crawl_id_and_check_key_and_priority_score"
     t.index ["crawl_id", "check_key"], name: "index_issues_on_crawl_id_and_check_key"
     t.index ["crawl_id", "page_id"], name: "index_issues_on_crawl_id_and_page_id"
   end

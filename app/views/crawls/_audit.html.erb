@@ -16,6 +16,30 @@
         <p role="alert" class="error">La auditoría falló: <%= crawl.audit_error %></p>
       <% when "done" %>
         <% summary = Audit::Summary.new(crawl) %>
+        <% previous = crawl.previous_scored %>
+        <div class="health">
+          <div class="health-score <%= health_class(crawl.health_score) %>" aria-label="Salud del sitio">
+            <span class="value"><%= format_score(crawl.health_score) %></span><span class="out-of">/100</span>
+          </div>
+          <div class="stack">
+            <strong>Salud del sitio</strong>
+            <% if previous %>
+              <span><%= score_delta(crawl.health_score, previous.health_score) %>
+                <span class="muted">frente al crawl del <%= l(previous.created_at, format: :short) %> (<%= format_score(previous.health_score) %>)</span></span>
+            <% end %>
+          </div>
+        </div>
+        <ul class="plain categories">
+          <% Audit::Scoring::CATEGORY_WEIGHTS.keys.each do |category| %>
+            <% score = crawl.category_scores[category] %>
+            <% next unless score %>
+            <li>
+              <span><%= Audit::Scoring::CATEGORY_LABELS[category] %></span>
+              <span class="bar"><span class="<%= health_class(score) %>" style="width: <%= score %>%"></span></span>
+              <span class="num"><%= format_score(score) %></span>
+            </li>
+          <% end %>
+        </ul>
         <dl class="stats">
           <% summary.by_severity.each do |severity, count| %>
             <div><dt><%= AuditHelper::SEVERITY_LABELS[severity] %></dt><dd class="sev-<%= severity %>"><%= count %></dd></div>
@@ -29,6 +53,7 @@
                 <summary class="issue-toggle">
                   <%= severity_badge(entry.severity) %>
                   <span class="issue-title"><%= entry.title %></span>
+                  <span class="muted" title="Prioridad 0–100: gravedad, alcance e importancia de las páginas">prioridad <%= entry.priority %></span>
                   <span class="muted"><%= entry.count %></span>
                 </summary>
                 <div class="issue-body stack">

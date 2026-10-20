@@ -2,6 +2,7 @@ module Audit
   module Checks
     module AiSearch
       class BotsBlocked < Check
+        site_wide!
         define key: "ai.bots_blocked", category: "ai_search", severity: "warning", weight: 3,
           title: "robots.txt bloquea rastreadores de IA",
           description: "Algunos rastreadores de buscadores y asistentes de IA no pueden leer el sitio. Puede ser intencionado; revisa que lo sea.",
@@ -14,6 +15,7 @@ module Audit
       end
 
       class LlmsTxtMissing < Check
+        site_wide!
         define key: "ai.llms_txt_missing", category: "ai_search", severity: "notice", weight: 1,
           title: "Sin llms.txt",
           description: "llms.txt es una propuesta para resumir el sitio a modelos de lenguaje; aún no es un estándar ni garantiza efectos.",

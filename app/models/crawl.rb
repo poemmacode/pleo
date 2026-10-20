@@ -32,6 +32,11 @@ class Crawl < ApplicationRecord
     crawl_config.max_pages * 10
   end
 
+  # The most recent earlier crawl of the same domain with a health score, for comparisons.
+  def previous_scored
+    domain.crawls.where.not(health_score: nil).where(created_at: ...created_at).order(created_at: :desc).first
+  end
+
   def finished?
     FINISHED_STATUSES.include?(status)
   end

@@ -9,6 +9,13 @@ module CrawlScoped
       @crawl = Crawl.joins(:project).where(projects: { user_id: Current.user.id }).find(params[:crawl_id] || params[:id])
     end
 
+    # Offset pagination for orderings that are not by id (e.g. priority). Returns [records, next_page].
+    def numbered(scope, size: PAGE_SIZE)
+      page = [ params[:page].to_i, 1 ].max
+      records = scope.offset((page - 1) * size).limit(size + 1).to_a
+      [ records.first(size), records.size > size ? page + 1 : nil ]
+    end
+
     # Returns [records, next_cursor]; pass ?after=<next_cursor> for the following page.
     def keyset(scope, size: PAGE_SIZE)
       scope = scope.where("#{scope.table_name}.id > ?", params[:after].to_i) if params[:after].present?

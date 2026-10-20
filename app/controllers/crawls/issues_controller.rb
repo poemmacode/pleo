@@ -6,7 +6,8 @@ class Crawls::IssuesController < ApplicationController
 
   def show
     @definition = CheckDefinition.find_by!(key: params[:check_key])
-    @findings, @next_cursor = keyset(@crawl.issues.where(check_key: @definition.key).order(:id))
+    # Most important pages first (Audit::Scoring priority).
+    @findings, @next_page = numbered(@crawl.issues.where(check_key: @definition.key).order("priority_score DESC NULLS LAST, id"))
     respond_to do |format|
       format.html
       format.turbo_stream
