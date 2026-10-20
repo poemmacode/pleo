@@ -1,11 +1,12 @@
 require "capybara/cuprite"
 
-Capybara.register_driver(:cuprite) do |app|
-  Capybara::Cuprite::Driver.new(
-    app, window_size: [ 1280, 1000 ], headless: true, process_timeout: 30, timeout: 15,
-    browser_path: ENV["CHROME_PATH"], browser_options: ENV["CI"] ? { "no-sandbox" => nil } : {}
-  )
-end
+# Options go through driven_by: Rails re-registers :cuprite with its own defaults on every
+# driven_by call, which would discard a separate Capybara.register_driver(:cuprite).
+CUPRITE_OPTIONS = {
+  headless: true, process_timeout: 30, timeout: 15, browser_path: ENV["CHROME_PATH"],
+  # GitHub's Ubuntu runners restrict the user namespaces Chrome's sandbox needs.
+  browser_options: ENV["CI"] ? { "no-sandbox" => nil } : {}
+}
 
 module SystemHelpers
   def log_in_as(user)
@@ -21,7 +22,7 @@ RSpec.configure do |config|
   config.include SystemHelpers, type: :system
 
   config.before(type: :system) do
-    driven_by :cuprite
+    driven_by :cuprite, screen_size: [ 1280, 1000 ], options: CUPRITE_OPTIONS
     RateLimitStore::STORE.clear
   end
 
