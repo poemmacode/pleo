@@ -1,16 +1,16 @@
 # Project handoff
 
-Last updated: 2026-10-20, at commit `bcecf1e` on `main`. The working tree was clean before this file was added.
+Last updated: 2026-10-21. Roles, public home, JSON API and status page (ADR 0011) were added on top of commit `0e2fa13`.
 
 This document is for whoever picks the project up next, human or agent. It only claims what was verified. Unverified items are marked as such.
 
 ## 1. Goal and architecture
 
-**Goal.** A personal, independent, non-commercial SEO platform, inspired by Semrush's *publicly observable* features. All code, data and algorithms are our own or come from authorised sources. The MVP is a technical site audit (crawler + checks + health score) plus PageSpeed Insights. Later phases are in [02-architecture.md](02-architecture.md) §7 and [04-backlog.md](04-backlog.md): Search Console, GA4, keywords, rank tracking, competitors, GEO and backlinks.
+**Goal.** A technical SEO audit platform with a public home page and open sign-up. All code, data and algorithms are our own or come from authorised sources. The MVP is a technical site audit (crawler + checks + health score) plus PageSpeed Insights. Later phases are in [02-architecture.md](02-architecture.md) §7 and [04-backlog.md](04-backlog.md): Search Console, GA4, keywords, rank tracking, competitors, GEO and backlinks.
 
 **Architecture** (details in [02-architecture.md](02-architecture.md) and [adr/](adr/)):
 
-- **App.** One Rails 8.0.5.1 monolith (Ruby 3.3.0) at the repository root. HTML controllers with Hotwire: Turbo plus Stimulus, importmap and Propshaft, no Node and no build step. There is no JSON API (ADR 0006).
+- **App.** One Rails 8.0.5.1 monolith (Ruby 3.3.0) at the repository root. HTML controllers with Hotwire: Turbo plus Stimulus, importmap and Propshaft, no Node and no build step (ADR 0006). A separate token-authenticated JSON API lives under `/api/v1` (ADR 0011).
 - **Data.** PostgreSQL. Sidekiq 7.3 runs on Redis. Action Cable uses the Redis adapter for live Turbo Stream updates.
 - **Domain code.** Lives in `app/modules/`:
   - `SafeHttp`: SSRF-safe HTTP client, robots.txt parser, per-host rate limiter, adaptive rate.
@@ -18,10 +18,12 @@ This document is for whoever picks the project up next, human or agent. It only 
   - `Audit`: 58 checks, PageRank, duplicates, schema.org validation, scoring.
   - `Performance`: the PSI client, sampler and parser.
   - `Reports`: CSV, XLSX and PDF.
+  - `Monitoring`: health probe and uptime figures for `/status`.
 - **Jobs.** Live in `app/jobs/`:
   - `crawling/start_crawl_job`, `crawling/fetch_lane_job`, `crawling/sitemap_discovery_job`;
   - `audit/run_audit_job`;
-  - `reports/generate_report_job`.
+  - `reports/generate_report_job`;
+  - `monitoring/health_check_job` (self-scheduling every 5 minutes).
 - **i18n.** English is the default and Spanish is available. A picker in the top bar saves the choice to `users.locale` (ADR 0010).
 - **Deployment.** Render free plan via the `render.yaml` Blueprint: one web service with Sidekiq embedded in Puma, a free Postgres and a free Key Value (Redis). See [deploy.md](deploy.md).
 - **Repository.** `git@github.com:poemmacode/pleoop.git` (private), using SSH auth. Render auto-deploys from `main`.
@@ -32,7 +34,7 @@ This document is for whoever picks the project up next, human or agent. It only 
 
 | Epic | What | ADR |
 |---|---|---|
-| 0 | Auth: server-side sessions; no sign-up (users created by rake task); rate-limited sign-in. Projects, domains, domain verification by DNS TXT, file or meta tag | 0001 |
+| 0 | Auth: server-side sessions; rate-limited sign-in (sign-up was added later, see Roles). Projects, domains, domain verification by DNS TXT, file or meta tag | 0001 |
 | A | SafeHttp: SSRF/DNS rebinding guard, IP pinning, manual redirects, decompression cap, RFC 9309 robots, GCRA host limiter, AdaptiveRate | 0003 |
 | B | Crawler: lanes, `SKIP LOCKED` frontier, atomic page budget, sitemaps, per-host robots, pause/resume/cancel, auto-pause on overload | 0004 |
 | C | On-page extraction, link graph, structured data (JSON-LD/Microdata/RDFa) with schema.org validation, duplicates (exact + SimHash), check catalogue (58 checks) | 0005 |
@@ -42,6 +44,10 @@ This document is for whoever picks the project up next, human or agent. It only 
 | F | Reports: pages CSV, issues CSV, full XLSX, PDF executive summary; stored in Postgres; CSV-injection protection | 0009 |
 | G (partial) | G.1 crawl form, G.2 live progress, G.3 audit summary, G.5 page detail, G.6 exports, G.8 i18n | 0006, 0010 |
 | i18n | EN default / ES, picker saved per user, check texts in locale files, per-locale broadcasts, per-report locale | 0010 |
+| Roles | `admin` (only the `ADMIN_EMAIL` account, synced by `users:ensure`) and `member`; members edit only their own records and cannot delete projects, verified/crawled domains, crawls or users; `/admin/users` | 0011 |
+| Public | Home page at `/`, open sign-up at `/sign_up` (`REGISTRATION_OPEN`) | 0011 |
+| API | `/api/v1` with bearer tokens (digest stored), OpenAPI 3.1 in `docs/api/openapi.yaml`, rendered at `/api/docs`, drift spec | 0011 |
+| Status | `/status` and `/status.json`: live probe of database, Redis and jobs; uptime 24h/7d/30d, 30 daily bars, incidents | 0011 |
 
 ### Not done or partial
 
@@ -101,21 +107,25 @@ This document is for whoever picks the project up next, human or agent. It only 
 - **Deprecation warning.** RSpec prints a warning about `:unprocessable_entity`; Rack prefers `:unprocessable_content`. It is harmless for now.
 - **SimHash false positives.** Near-duplicate detection can flag pages that share large sidebars (ADR 0005).
 - **schema.org validation gaps.** Value ranges and enumerations are not checked.
+- **Open sign-up lets strangers start crawls** (within the unverified-domain limits). Set `REGISTRATION_OPEN=false` for a private deployment (ADR 0011).
+- **Uptime is self-reported.** Checks only run while the app is awake; Render's free-plan sleep appears as "no data". An external monitor is needed for real outage alerts.
+- **The health-check chain on Render is not verified.** It was verified locally with `bin/dev`, where Sidekiq runs as a separate process; with `SIDEKIQ_EMBEDDED=true` the `on(:startup)` hook is expected to run but was not observed.
 - **Concurrency was only tested by hand.** One manual Sidekiq run against books.toscrape.com; the integration spec runs jobs inline.
 
-## 6. Tests (last run on 2026-10-20, before commit `bcecf1e`)
+## 6. Tests (last run on 2026-10-21)
 
 | Command | Result |
 |---|---|
-| `bundle exec rspec` | **442 examples, 0 failures** (about 70 s, system specs included) |
-| `bin/rubocop` | 188 files, no offenses |
+| `bundle exec rspec` | **479 examples, 0 failures** (system specs included, run with `CI=1`) |
+| `bin/rubocop` | 223 files, no offenses |
 | `bin/brakeman --no-pager --except EOLRails` | 0 security warnings |
 
-Not run in this last round: `bin/importmap audit`, `bundle-audit`, and a manual browser check of the deployed app. The system spec "switches the interface to Spanish from the top bar and keeps it" covers the locale switch in headless Chrome.
+`bin/importmap audit` and `bundle-audit`: no vulnerabilities. Not run: a manual browser check of the deployed app. Checked by hand in a local browser on 2026-10-21: home, sign-up, API tokens, `/admin/users`, `/status`, `/api/docs`, and the live API with curl (create project and domain, 403 on project delete as a member, 401 without token, 404 for a foreign project). The system spec "switches the interface to Spanish from the top bar and keeps it" covers the locale switch in headless Chrome.
 
 ## 7. Next steps, in priority order
 
-1. **Check the Render deploy of `bcecf1e`.** In the Render dashboard, confirm the build passed and the boot migration ran. Then open the app: it should show English, the **ES** button should switch it to Spanish, and the choice should persist after reload.
+1. **Deploy ADR 0011 and check it on Render.** The boot migration adds `users.role`, `api_tokens` and `uptime_checks`; `users:ensure` then promotes `ADMIN_EMAIL`. Confirm `/status` records a check within 5 minutes and decide whether sign-up should stay open (`REGISTRATION_OPEN`).
+   The earlier deploy of `bcecf1e` (i18n) was never checked either: the app should show English, the **ES** button should switch it to Spanish, and the choice should persist after reload.
 2. **Add `PAGESPEED_API_KEY` on Render.** This is the user's action; the steps are in deploy.md. Then run a crawl and check that a real PSI response parses. Fix `app/modules/performance/parser.rb` if the real response does not match the documented structure.
 3. **Before 2026-11-07, upgrade Ruby and Rails.**
    - Install Ruby ≥ 3.3.1 (3.4.x preferred); update `.tool-versions`, CI and Render's Ruby version.
@@ -167,7 +177,7 @@ bundle install && bin/rails db:prepare
 ```
 
 ```bash
-bin/rails users:create EMAIL=you@example.com
+ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='a long password' bin/rails users:ensure
 ```
 
 ```bash
@@ -196,7 +206,8 @@ bin/rails schema_org:refresh
 |---|---|
 | `DATABASE_URL`, `REDIS_URL`, `RENDER_EXTERNAL_URL` | Set by Render |
 | `RAILS_MASTER_KEY` | Contents of `config/master.key`, which is git-ignored |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Admin user for `users:ensure`; the password must be ≥ 12 characters |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | The only admin, synced by `users:ensure` on boot; the password must be ≥ 12 characters and can't be changed in the app |
+| `REGISTRATION_OPEN` | `false` closes public sign-up (default `true`) |
 | `PAGESPEED_API_KEY` | Google PSI key. Optional, but performance is skipped without it |
 | `PAGESPEED_DAILY_LIMIT` | Daily PSI cap (default 500) |
 | `SIDEKIQ_EMBEDDED`, `SIDEKIQ_CONCURRENCY`, `RAILS_MAX_THREADS`, `DB_POOL`, `WEB_CONCURRENCY` | Process tuning; Render values are in `render.yaml` |

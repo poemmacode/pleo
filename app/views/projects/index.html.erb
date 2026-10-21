@@ -19,6 +19,7 @@
         <%= link_to project.name, project %>
         <span class="muted">
           <%= t(".domains", count: project.domains.size) %> · <%= t(".verified", count: project.domains.count(&:verified?)) %>
+          <% if Current.user.admin? && project.user_id != Current.user.id %> · <%= t(".owner", email: project.user.email) %><% end %>
         </span>
       </li>
     <% end %>

@@ -1,0 +1,548 @@
+openapi: 3.1.0
+info:
+  title: SEO Platform API
+  version: "1.0"
+  description: |
+    REST API for projects, domains, crawls, crawled pages and audit issues.
+
+    **Authentication.** Create a token under *Settings → API tokens* and send it on every request:
+    `Authorization: Bearer seop_…`. Tokens act as their owner and follow the same rules as the web app:
+    members only see and edit their own records, and only the admin can delete projects.
+
+    **Format.** JSON in and out. Timestamps are ISO 8601 in UTC. Lists use keyset pagination: pass the
+    `next_cursor` of a response as `after` to get the next page; `null` means there are no more.
+
+    **Errors.** Every error has the shape `{"error": {"code": "...", "message": "...", "details": [...]}}`.
+
+    **Limits.** 120 requests per minute per token; starting crawls and verifying domains are limited to 10
+    per minute. Over the limit the API answers `429`.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Account
+  - name: Projects
+  - name: Domains
+  - name: Crawls
+  - name: Results
+paths:
+  /me:
+    get:
+      tags: [Account]
+      summary: The token's user
+      operationId: getMe
+      responses:
+        "200":
+          description: The user that owns the token.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/User" }
+              example:
+                data: { id: 7, email: you@example.com, role: member, locale: en, created_at: "2026-10-21T09:00:00Z" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /projects:
+    get:
+      tags: [Projects]
+      summary: List projects
+      description: Members get their own projects; the admin gets every project.
+      operationId: listProjects
+      parameters:
+        - $ref: "#/components/parameters/After"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: A page of projects.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/Project" } }
+                  next_cursor: { $ref: "#/components/schemas/Cursor" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [Projects]
+      summary: Create a project
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [project]
+              properties:
+                project:
+                  type: object
+                  required: [name]
+                  properties:
+                    name: { type: string, maxLength: 120 }
+            example: { project: { name: Company blog } }
+      responses:
+        "201": { $ref: "#/components/responses/ProjectResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+  /projects/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Projects]
+      summary: Get a project
+      operationId: getProject
+      responses:
+        "200": { $ref: "#/components/responses/ProjectResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Projects]
+      summary: Rename a project
+      operationId: updateProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [project]
+              properties:
+                project:
+                  type: object
+                  properties:
+                    name: { type: string, maxLength: 120 }
+            example: { project: { name: Company blog (EN) } }
+      responses:
+        "200": { $ref: "#/components/responses/ProjectResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+    delete:
+      tags: [Projects]
+      summary: Delete a project (admin only)
+      description: Deletes the project with its domains and crawls. Members get `403`.
+      operationId: deleteProject
+      responses:
+        "204": { description: Deleted. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /projects/{project_id}/domains:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+    get:
+      tags: [Domains]
+      summary: List a project's domains
+      operationId: listDomains
+      responses:
+        "200":
+          description: The project's domains, by host.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/Domain" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [Domains]
+      summary: Add a domain
+      description: The host is normalised (lowercase, punycode). IPs, internal names, ports and credentials are rejected.
+      operationId: createDomain
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [domain]
+              properties:
+                domain:
+                  type: object
+                  required: [host]
+                  properties:
+                    host: { type: string, example: example.com }
+      responses:
+        "201": { $ref: "#/components/responses/DomainResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationFailed" }
+  /domains/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Domains]
+      summary: Get a domain, with its verification instructions
+      operationId: getDomain
+      responses:
+        "200": { $ref: "#/components/responses/DomainResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Domains]
+      summary: Remove a domain
+      description: Members can only remove a domain that is unverified and has never been crawled; the admin can remove any.
+      operationId: deleteDomain
+      responses:
+        "204": { description: Removed. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /domains/{id}/verify:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      tags: [Domains]
+      summary: Verify ownership of a domain
+      description: Checks the DNS TXT record, the file or the meta tag described in the domain's `verification` field.
+      operationId: verifyDomain
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [method]
+              properties:
+                method: { type: string, enum: [dns_txt, html_file, meta] }
+      responses:
+        "200": { $ref: "#/components/responses/DomainResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /projects/{project_id}/crawls:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+    get:
+      tags: [Crawls]
+      summary: List a project's crawls
+      operationId: listCrawls
+      parameters:
+        - $ref: "#/components/parameters/After"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: A page of crawls, oldest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/Crawl" } }
+                  next_cursor: { $ref: "#/components/schemas/Cursor" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [Crawls]
+      summary: Start a crawl
+      description: |
+        Verified domains allow up to 50,000 pages and 10 requests per second. Unverified domains allow up to
+        2,000 pages and 2 requests per second, and need `terms_accepted: true` to confirm the site's terms
+        allow crawling. robots.txt is always respected. One active crawl per host and two per user.
+      operationId: createCrawl
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [crawl]
+              properties:
+                crawl:
+                  type: object
+                  required: [domain_id]
+                  properties:
+                    domain_id: { type: integer }
+                    start_url: { type: string, description: "Defaults to https://<host>/" }
+                    scope: { type: string, enum: [domain, subdomain, subfolder], default: domain }
+                    max_pages: { type: integer }
+                    max_depth: { type: integer, maximum: 50 }
+                    requests_per_second: { type: number }
+                    device: { type: string, enum: [desktop, mobile] }
+                    use_sitemaps: { type: boolean, default: true }
+                    respect_nofollow: { type: boolean, default: false }
+                    include_patterns: { type: array, items: { type: string }, description: Regular expressions, at most 20. }
+                    exclude_patterns: { type: array, items: { type: string }, description: Regular expressions, at most 20. }
+                    terms_accepted: { type: boolean, description: Required for unverified domains. }
+                    run_pagespeed: { type: boolean, default: true }
+                    pagespeed_sample: { type: integer, maximum: 30 }
+            example: { crawl: { domain_id: 12, max_pages: 200, requests_per_second: 1, terms_accepted: true } }
+      responses:
+        "201": { $ref: "#/components/responses/CrawlResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+  /crawls/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Crawls]
+      summary: Get a crawl's progress and scores
+      operationId: getCrawl
+      responses:
+        "200": { $ref: "#/components/responses/CrawlResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /crawls/{id}/pause:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      tags: [Crawls]
+      summary: Pause a queued or running crawl
+      operationId: pauseCrawl
+      responses:
+        "200": { $ref: "#/components/responses/CrawlResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Error" }
+  /crawls/{id}/resume:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      tags: [Crawls]
+      summary: Resume a paused crawl
+      operationId: resumeCrawl
+      responses:
+        "200": { $ref: "#/components/responses/CrawlResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Error" }
+  /crawls/{id}/cancel:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      tags: [Crawls]
+      summary: Cancel a crawl
+      description: Stops the crawl and keeps the pages fetched so far. Nothing is deleted.
+      operationId: cancelCrawl
+      responses:
+        "200": { $ref: "#/components/responses/CrawlResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Error" }
+  /crawls/{crawl_id}/pages:
+    parameters:
+      - $ref: "#/components/parameters/CrawlId"
+    get:
+      tags: [Results]
+      summary: List crawled pages
+      operationId: listPages
+      parameters:
+        - name: status
+          in: query
+          description: An HTTP status (`404`), a class (`4xx`) or `error` for fetches without a response.
+          schema: { type: string, example: 4xx }
+        - $ref: "#/components/parameters/After"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: A page of crawled URLs.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/Page" } }
+                  next_cursor: { $ref: "#/components/schemas/Cursor" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /crawls/{crawl_id}/issues:
+    parameters:
+      - $ref: "#/components/parameters/CrawlId"
+    get:
+      tags: [Results]
+      summary: Audit issues by check
+      description: One entry per failed check with its number of findings, highest priority first. Empty until `audit_status` is `done`.
+      operationId: listIssues
+      responses:
+        "200":
+          description: The audit summary.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  audit_status: { type: string, enum: [pending, running, done, failed] }
+                  health_score: { type: [number, "null"], description: 0–100 }
+                  by_severity:
+                    type: object
+                    properties:
+                      error: { type: integer }
+                      warning: { type: integer }
+                      notice: { type: integer }
+                  data: { type: array, items: { $ref: "#/components/schemas/Issue" } }
+              example:
+                audit_status: done
+                health_score: 82.4
+                by_severity: { error: 3, warning: 41, notice: 12 }
+                data:
+                  - { check_key: http.timeout, category: crawlability, severity: error, title: Pages that did not respond, count: 3, priority: 88 }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: A token from Settings → API tokens (`seop_…`).
+  parameters:
+    Id: { name: id, in: path, required: true, schema: { type: integer } }
+    ProjectId: { name: project_id, in: path, required: true, schema: { type: integer } }
+    CrawlId: { name: crawl_id, in: path, required: true, schema: { type: integer } }
+    After: { name: after, in: query, description: The `next_cursor` of the previous page., schema: { type: integer } }
+    Limit: { name: limit, in: query, description: Page size., schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+  schemas:
+    Cursor: { type: [integer, "null"], description: Pass as `after` for the next page; null when there are no more. }
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        email: { type: string }
+        role: { type: string, enum: [admin, member] }
+        locale: { type: string, enum: [en, es] }
+        created_at: { type: string, format: date-time }
+    Project:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        owner_id: { type: integer }
+        domains_count: { type: integer }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    Domain:
+      type: object
+      properties:
+        id: { type: integer }
+        project_id: { type: integer }
+        host: { type: string }
+        verified: { type: boolean }
+        verified_at: { type: [string, "null"], format: date-time }
+        verification_method: { type: [string, "null"], enum: [dns_txt, html_file, meta, gsc, null] }
+        verification:
+          type: object
+          description: What to publish for each verification method.
+          properties:
+            dns_txt: { type: object, properties: { type: { type: string }, name: { type: string }, value: { type: string } } }
+            html_file: { type: object, properties: { url: { type: string }, content: { type: string } } }
+            meta: { type: object, properties: { tag: { type: string } } }
+        created_at: { type: string, format: date-time }
+    Crawl:
+      type: object
+      properties:
+        id: { type: integer }
+        project_id: { type: integer }
+        domain_id: { type: integer }
+        host: { type: string }
+        status: { type: string, enum: [queued, running, paused, completed, failed, cancelled] }
+        status_reason: { type: [string, "null"] }
+        config:
+          type: object
+          properties:
+            start_url: { type: string }
+            scope: { type: string }
+            max_pages: { type: integer }
+            max_depth: { type: integer }
+            requests_per_second: { type: number }
+            device: { type: string }
+        pages:
+          type: object
+          properties:
+            discovered: { type: integer }
+            crawled: { type: integer }
+            failed: { type: integer }
+            skipped: { type: integer }
+        audit_status: { type: string, enum: [pending, running, done, failed] }
+        health_score: { type: [number, "null"] }
+        category_scores: { type: object, additionalProperties: { type: number } }
+        started_at: { type: [string, "null"], format: date-time }
+        finished_at: { type: [string, "null"], format: date-time }
+        created_at: { type: string, format: date-time }
+    Page:
+      type: object
+      properties:
+        id: { type: integer }
+        url: { type: string }
+        status_code: { type: [integer, "null"] }
+        depth: { type: [integer, "null"] }
+        redirect_url: { type: [string, "null"] }
+        fetch_error: { type: [string, "null"] }
+        content_type: { type: [string, "null"] }
+        response_ms: { type: [integer, "null"] }
+        title: { type: [string, "null"] }
+        meta_description: { type: [string, "null"] }
+        canonical: { type: [string, "null"] }
+        indexable: { type: boolean }
+        indexability_reason: { type: [string, "null"] }
+        in_sitemap: { type: boolean }
+    Issue:
+      type: object
+      properties:
+        check_key: { type: string }
+        category: { type: string }
+        severity: { type: string, enum: [error, warning, notice] }
+        title: { type: string }
+        count: { type: integer }
+        priority: { type: [integer, "null"], description: 0–100, higher means fix first. }
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: array, items: { type: object } }
+  responses:
+    ProjectResponse:
+      description: A project.
+      content:
+        application/json:
+          schema: { type: object, properties: { data: { $ref: "#/components/schemas/Project" } } }
+    DomainResponse:
+      description: A domain.
+      content:
+        application/json:
+          schema: { type: object, properties: { data: { $ref: "#/components/schemas/Domain" } } }
+    CrawlResponse:
+      description: A crawl.
+      content:
+        application/json:
+          schema: { type: object, properties: { data: { $ref: "#/components/schemas/Crawl" } } }
+    Error:
+      description: The request could not be completed; see `error.code`.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Missing or invalid token (`unauthorized`).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: The token's role cannot do this (`forbidden`).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: The resource does not exist or belongs to someone else (`not_found`).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ValidationFailed:
+      description: "Invalid fields (`validation_failed`); `details` lists `{field, message}`."
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    RateLimited:
+      description: Too many requests (`rate_limited`).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }

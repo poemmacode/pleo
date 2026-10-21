@@ -1,0 +1,26 @@
+<% content_for :title, t(".page_title") %>
+<main class="narrow">
+  <h1><%= t(".heading") %></h1>
+  <p class="muted"><%= t(".lead") %></p>
+  <%= form_with model: @user, url: registration_path, class: "card stack" do |f| %>
+    <%= f.label :email do %>
+      <%= t(".email") %>
+      <%= f.email_field :email, required: true, autocomplete: "username", autofocus: true, "aria-invalid": @user.errors[:email].any? %>
+      <%= field_error(@user, :email) %>
+    <% end %>
+    <%= f.label :password do %>
+      <%= t(".password", count: User::MIN_PASSWORD_LENGTH) %>
+      <%= f.password_field :password, required: true, autocomplete: "new-password", minlength: User::MIN_PASSWORD_LENGTH,
+                           "aria-invalid": @user.errors[:password].any? %>
+      <%= field_error(@user, :password) %>
+    <% end %>
+    <%= f.label :password_confirmation do %>
+      <%= t(".password_confirmation") %>
+      <%= f.password_field :password_confirmation, required: true, autocomplete: "new-password",
+                           "aria-invalid": @user.errors[:password_confirmation].any? %>
+      <%= field_error(@user, :password_confirmation) %>
+    <% end %>
+    <div><%= f.submit t(".submit"), data: { turbo_submits_with: t(".submitting") } %></div>
+  <% end %>
+  <p class="muted"><%= t(".have_account") %> <%= link_to t(".sign_in"), new_session_path %></p>
+</main>

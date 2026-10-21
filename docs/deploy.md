@@ -23,9 +23,11 @@ The repository includes a Blueprint, [`render.yaml`](../render.yaml), that creat
    It can be private; Render will ask for access to it. `config/master.key` is in `.gitignore` and is **not** pushed.
 2. In Render: **New → Blueprint**, pick the repository and the `main` branch. Render reads `render.yaml` and asks for three secret values:
    - `RAILS_MASTER_KEY`: the contents of `config/master.key` (no line breaks).
-   - `ADMIN_EMAIL` and `ADMIN_PASSWORD`: your user, with a password of at least 12 characters. On every boot `bin/rails users:ensure` creates it, or updates its password if you change it here. It works this way because the free plan has no Shell.
+   - `ADMIN_EMAIL` and `ADMIN_PASSWORD`: the admin account, with a password of at least 12 characters. On every boot `bin/rails users:ensure` creates it, makes it the only admin and resets its password to this value if you change it here (which also signs it out everywhere). The password cannot be changed from the app. Everyone else signs up at `/sign_up` as a member.
 3. Click **Apply**. The build runs `bundle install` and `assets:precompile`. Boot runs `db:prepare`, `users:ensure` and Puma.
 4. Open `https://seo-platform.onrender.com` (or whatever name Render assigns) and sign in. The interface is in English; switch to Spanish with the **ES** button in the top bar (the choice is saved on your user).
+
+Sign-up is open by default (`REGISTRATION_OPEN=true` in `render.yaml`). Set it to `false` in **Environment** to keep the deployment to the admin only.
 
 Render sets `RENDER_EXTERNAL_URL`, `DATABASE_URL` and `REDIS_URL`. The bot's User-Agent links to `/bot`, a public page explaining what it does and how to block it.
 
@@ -56,7 +58,8 @@ Each measurement takes 10–60 s on Google's servers. 4 pages are measured at a 
 
 - SSRF protection lives in the application (`SafeHttp`), so it works the same on Render. The infrastructure layers from the design (blocking egress to private networks, IMDSv2, Smokescreen) do not exist here; they would only matter if the app were opened to other users.
 - `force_ssl` is on; `/up` is excluded from the redirect for the health check.
-- Sign-up is disabled: the only user is the one from `ADMIN_EMAIL`.
+- Only the `ADMIN_EMAIL` account is an admin. Members only see their own records and cannot delete projects, verified or crawled domains, crawls or users.
+- `/status` records a health check every 5 minutes, but only while the service is awake: the free plan's sleep shows up as "no data", not as downtime. For real outage alerts, point an external monitor at `/up` or `/status.json`.
 
 ## Moving to a paid plan
 

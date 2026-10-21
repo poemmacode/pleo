@@ -12,4 +12,7 @@
     <% end %>
     <div><%= f.submit t(".submit"), data: { turbo_submits_with: t(".submitting") } %></div>
   <% end %>
+  <% if RegistrationsController.open? %>
+    <p class="muted"><%= t(".no_account") %> <%= link_to t(".sign_up"), new_registration_path %></p>
+  <% end %>
 </main>

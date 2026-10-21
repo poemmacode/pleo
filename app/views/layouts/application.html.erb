@@ -3,6 +3,7 @@
   <head>
     <title><%= content_for(:title) || t("app.name") %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
+    <% if content_for?(:description) %><meta name="description" content="<%= yield(:description) %>"><% end %>
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
@@ -11,17 +12,42 @@
   <body>
     <% if authenticated? %>
       <header class="topbar">
-        <%= link_to t("app.name"), root_path, class: "brand" %>
+        <nav class="row" aria-label="<%= t(".main_nav") %>">
+          <%= link_to t("app.name"), projects_path, class: "brand" %>
+          <%= link_to t(".projects"), projects_path %>
+          <%= link_to t(".api_tokens"), settings_api_tokens_path %>
+          <% if Current.user.admin? %><%= link_to t(".users"), admin_users_path %><% end %>
+          <%= link_to t(".status"), status_path %>
+        </nav>
         <span class="row">
           <%= render "shared/locale_switcher" %>
           <span class="muted"><%= Current.user.email %></span>
+          <% if Current.user.admin? %><span class="badge ok"><%= t(".admin") %></span><% end %>
           <%= button_to t(".sign_out"), session_path, method: :delete, class: "secondary" %>
         </span>
       </header>
     <% else %>
-      <header class="topbar plain-topbar"><span></span><%= render "shared/locale_switcher" %></header>
+      <header class="topbar">
+        <nav class="row" aria-label="<%= t(".main_nav") %>">
+          <%= link_to t("app.name"), root_path, class: "brand" %>
+          <%= link_to t(".features"), root_path(anchor: "features") %>
+          <%= link_to t(".api_docs"), api_docs_path %>
+          <%= link_to t(".status"), status_path %>
+        </nav>
+        <span class="row">
+          <%= render "shared/locale_switcher" %>
+          <%= link_to t(".sign_in"), new_session_path %>
+          <% if RegistrationsController.open? %><%= link_to t(".sign_up"), new_registration_path, class: "button" %><% end %>
+        </span>
+      </header>
     <% end %>
     <div class="flash-area"><%= render "shared/flash" %></div>
     <%= yield %>
+    <footer class="site-footer">
+      <span><%= t("app.name") %></span>
+      <%= link_to t(".api_docs"), api_docs_path %>
+      <%= link_to t(".status"), status_path %>
+      <%= link_to t(".bot"), bot_info_path %>
+    </footer>
   </body>
 </html>

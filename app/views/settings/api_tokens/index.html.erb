@@ -1,0 +1,42 @@
+<% content_for :title, t(".page_title") %>
+<main>
+  <h1><%= t(".heading") %></h1>
+  <p class="muted"><%= t(".lead_html", docs: link_to(t(".docs"), api_docs_path)) %></p>
+
+  <% if flash[:new_token].present? %>
+    <div class="card stack new-token" role="status">
+      <strong><%= t(".copy_now") %></strong>
+      <code id="new-token"><%= flash[:new_token] %></code>
+      <p class="muted"><%= t(".usage") %> <code>Authorization: Bearer <%= flash[:new_token].first(ApiToken::PREFIX.length) %>…</code></p>
+    </div>
+  <% end %>
+
+  <%= form_with model: @token, url: settings_api_tokens_path, class: "inline-form" do |f| %>
+    <%= f.label :name do %>
+      <%= t(".name") %>
+      <%= f.text_field :name, placeholder: t(".name_placeholder"), required: true, maxlength: 80,
+                       "aria-invalid": @token.errors.any? %>
+    <% end %>
+    <%= f.submit t(".create") %>
+  <% end %>
+  <% @token.errors.full_messages.first(1).each do |message| %><p class="error" role="alert"><%= message %></p><% end %>
+
+  <% if @tokens.empty? %>
+    <p class="muted"><%= t(".empty") %></p>
+  <% else %>
+    <ul class="list">
+      <% @tokens.each do |token| %>
+        <li class="card" id="<%= dom_id(token) %>">
+          <span><strong><%= token.name %></strong> <code><%= token.token_prefix %>…</code></span>
+          <span class="row">
+            <span class="muted">
+              <%= token.last_used_at ? t(".last_used", time: l(token.last_used_at, format: :short)) : t(".never_used") %>
+            </span>
+            <%= button_to t(".revoke"), settings_api_token_path(token), method: :delete, class: "secondary",
+                          form: { data: { turbo_confirm: t(".revoke_confirm", name: token.name) } } %>
+          </span>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+</main>

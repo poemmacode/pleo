@@ -5,18 +5,34 @@ RSpec.describe "Projects" do
 
   before { sign_in(user) }
 
-  it "creates, lists and deletes the user's projects" do
+  it "creates, lists and renames the user's projects" do
     post projects_path, params: { project: { name: "  Blog personal " } }
     project = Project.last
     expect(response).to redirect_to(project_path(project))
     expect(project.name).to eq("Blog personal")
 
-    get root_path
+    get projects_path
     expect(response.body).to include("Blog personal")
 
+    patch project_path(project), params: { project: { name: "Company blog" } }
+    expect(response).to redirect_to(project_path(project))
+    expect(project.reload.name).to eq("Company blog")
+
+    patch project_path(project), params: { project: { name: "" } }
+    expect(response).to have_http_status(:unprocessable_entity)
+    expect(project.reload.name).to eq("Company blog")
+  end
+
+  it "does not let a member delete a project" do
+    project = create(:project, user:)
+
+    get project_path(project)
+    expect(response.body).not_to include("Delete project")
+
     delete project_path(project)
-    expect(response).to redirect_to(root_path)
-    expect(Project.exists?(project.id)).to be(false)
+    expect(response).to redirect_to(projects_path)
+    expect(flash[:alert]).to include("Your role cannot do that")
+    expect(Project.exists?(project.id)).to be(true)
   end
 
   it "shows a project with its crawls" do

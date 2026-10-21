@@ -23,7 +23,7 @@ RSpec.describe "Sessions" do
   end
 
   it "redirects anonymous visitors to the login page" do
-    get root_path
+    get projects_path
     expect(response).to redirect_to(new_session_path)
   end
 
@@ -32,7 +32,7 @@ RSpec.describe "Sessions" do
     expect { delete session_path }.to change(Session, :count).by(-1)
     expect(response).to redirect_to(new_session_path)
 
-    get root_path
+    get projects_path
     expect(response).to redirect_to(new_session_path)
   end
 

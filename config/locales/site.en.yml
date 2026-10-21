@@ -1,0 +1,223 @@
+# Public pages (home, sign-up, status, API docs), accounts and roles.
+en:
+  authorization:
+    denied: Your role cannot do that. Only the admin can delete projects and verified or crawled domains.
+  roles:
+    admin: Admin
+    member: Member
+  registrations:
+    new:
+      page_title: Create account · SEO Platform
+      heading: Create your account
+      lead: Start auditing your sites in minutes. You can add projects, domains and crawls right after signing up.
+      email: Work email
+      password:
+        one: Password (at least %{count} character)
+        other: Password (at least %{count} characters)
+      password_confirmation: Confirm password
+      submit: Create account
+      submitting: Creating account…
+      have_account: Already have an account?
+      sign_in: Sign in
+    welcome: Welcome! Create your first project to get started.
+    closed: Sign-up is closed. Ask the administrator for an account.
+    rate_limited: Too many sign-ups from your network; try again later.
+  home:
+    show:
+      page_title: SEO Platform · Technical SEO audits for your websites
+      meta_description: Crawl your websites, find technical SEO issues, track site health and export client-ready reports.
+      hero:
+        eyebrow: Technical SEO audits
+        title: Find and fix the issues that keep your site from ranking.
+        lead: >-
+          SEO Platform crawls your website like a search engine, runs 58 technical checks on every page and tells
+          you what to fix first, with a health score you can track crawl after crawl.
+        note: Sign in or create an account to start your first crawl.
+      cta:
+        sign_up: Create a free account
+        sign_in: Sign in
+      highlights:
+        checks:
+          value: '58'
+          label: technical checks per page
+        pages:
+          value: '50,000'
+          label: pages per crawl on verified domains
+        reports:
+          value: CSV · Excel · PDF
+          label: exportable reports
+        api:
+          value: REST API
+          label: with token authentication
+      features:
+        title: Everything you need for a technical SEO audit
+        lead: From the first crawl to the report you hand to your client or your team.
+        items:
+          crawler:
+            title: Site crawler
+            body: Discovers pages through links and XML sitemaps, with control over scope, depth, page limits, include and exclude patterns, and desktop or mobile user agents.
+          audit:
+            title: 58-check technical audit
+            body: Status codes, redirects and chains, broken links, titles and meta descriptions, headings, canonicals, indexability, hreflang, images, HTTPS and mixed content, and more.
+          health:
+            title: Site health score
+            body: An overall score and a score per category, compared with the previous crawl, with issues ranked by priority so you know what to fix first.
+          performance:
+            title: Core Web Vitals and performance
+            body: Measures a sample of pages with PageSpeed Insights, combining Lighthouse lab data with real-user Core Web Vitals.
+          duplicates:
+            title: Duplicate content detection
+            body: Groups pages with duplicate titles, meta descriptions or near-identical content.
+          structured_data:
+            title: Structured data validation
+            body: Extracts JSON-LD, Microdata and RDFa, flags unknown schema.org types and properties, and missing fields for rich results.
+          reports:
+            title: Exportable reports
+            body: Pages and issues as CSV, a complete Excel workbook and a PDF executive summary, ready to share.
+          live:
+            title: Live progress
+            body: Follow every crawl in real time, and pause, resume or cancel it whenever you need.
+          api:
+            title: REST API
+            body: Automate projects, domains, crawls and results with a documented JSON API and personal tokens.
+          verification:
+            title: Domain verification
+            body: Prove ownership with a DNS TXT record, a file or a meta tag to unlock larger and faster crawls.
+      steps:
+        title: How it works
+        add:
+          title: 1. Add your site
+          body: Create a project and add the domains you manage. Verify them to unlock the highest limits.
+        crawl:
+          title: 2. Run a crawl
+          body: Choose the scope and limits. The crawler respects robots.txt and adapts its speed to the server.
+        fix:
+          title: 3. Fix what matters
+          body: Review the prioritized issues, open any page in detail and export the report for your team.
+      audiences:
+        title: Built for the people who look after websites
+        agencies:
+          title: Agencies and consultants
+          body: Audit client sites, show progress with the health score over time and hand over polished Excel and PDF reports.
+        teams:
+          title: In-house marketing teams
+          body: Catch broken links, missing tags and indexability problems before they cost you traffic.
+        developers:
+          title: Developers
+          body: Check a release before it goes live and plug audits into your own tooling through the API.
+      trust:
+        title: Responsible and secure by design
+        items:
+          robots: Always respects robots.txt and Crawl-delay, and identifies itself with a public bot page.
+          rate: Per-host rate limits that slow down or pause automatically when a server struggles.
+          verification: Higher crawl limits only for domains you have verified you own.
+          security: Server-side sessions, CSRF protection and blocking of private networks and internal addresses.
+          uptime: A public status page with live health checks and uptime history.
+        status_link: View system status
+        api_link: Read the API documentation
+      final:
+        title: Ready to see how healthy your site is?
+        body: Create an account, add your domain and get your first audit in minutes.
+  admin:
+    users:
+      index:
+        page_title: Users · SEO Platform
+        heading: Users
+        lead: The admin account comes from the ADMIN_EMAIL environment variable and cannot be deleted here.
+        email: Email
+        role: Role
+        projects: Projects
+        created: Created
+        delete: Delete
+        delete_confirm: Delete %{email} with all their projects, domains and crawls?
+      flash:
+        deleted: User %{email} deleted.
+        cannot_delete_admin: The admin account cannot be deleted.
+  settings:
+    api_tokens:
+      index:
+        page_title: API tokens · SEO Platform
+        heading: API tokens
+        lead_html: Tokens give scripts access to the API with your permissions. See the %{docs}.
+        docs: API documentation
+        copy_now: Copy your new token now. It will not be shown again.
+        usage: 'Send it in the header:'
+        name: Token name
+        name_placeholder: CI pipeline
+        create: Create token
+        empty: You have no API tokens.
+        last_used: Last used %{time}
+        never_used: Never used
+        revoke: Revoke
+        revoke_confirm: Revoke "%{name}"? Scripts using it will stop working.
+      flash:
+        created: Token created.
+        revoked: Token "%{name}" revoked.
+        limit:
+          one: You can have at most %{count} token.
+          other: You can have at most %{count} tokens.
+  status:
+    show:
+      page_title: System status · SEO Platform
+      meta_description: Live health of SEO Platform and its uptime history.
+      heading: System status
+      checked_now: Checked %{time}
+      overall:
+        ok: All systems operational
+        degraded: Degraded performance
+        down: Major outage
+      components: Components
+      component_names:
+        database: Database
+        redis: Cache and queues
+        jobs: Background jobs
+      component_help:
+        database: projects, crawls and results
+        redis: rate limits, live updates and job queues
+        jobs: crawling, audits and reports
+      states:
+        ok: Operational
+        degraded: Degraded
+        down: Down
+      ms:
+        one: '%{count} ms'
+        other: '%{count} ms'
+      uptime: Uptime
+      windows:
+        24h: Last 24 hours
+        7d: Last 7 days
+        30d: Last 30 days
+      no_data: No data
+      coverage:
+        one: '%{count} check, %{percent}% coverage'
+        other: '%{count} checks, %{percent}% coverage'
+      last_days:
+        one: Last day
+        other: Last %{count} days
+      bars_label:
+        one: Daily uptime for the last day
+        other: Daily uptime for the last %{count} days
+      today: Today
+      incidents: Recent incidents
+      no_incidents: No incidents in the last 30 days.
+      method: >-
+        The application checks its database, cache and background jobs every %{minutes} minutes. Gaps with no
+        checks are shown as no data.
+      last_recorded: 'Last recorded check: %{time}.'
+  api_docs:
+    show:
+      page_title: API documentation · SEO Platform
+      meta_description: 'Reference for the SEO Platform REST API: projects, domains, crawls, pages and audit issues.'
+      download: Download the OpenAPI 3.1 specification
+      manage_tokens: Manage your API tokens
+      sign_in_for_token: Sign in to create an API token
+      quick_start: Quick start
+      endpoints: Endpoints
+      parameter: Parameter
+      in: In
+      type: Type
+      description: Description
+      field: Field
+      request_body: Example request body
+      responses: Responses
+      schemas: Objects

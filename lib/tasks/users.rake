@@ -1,5 +1,5 @@
 namespace :users do
-  desc "Create a user: bin/rails users:create EMAIL=you@example.com (prompts for the password, or reads PASSWORD)"
+  desc "Create a member: bin/rails users:create EMAIL=you@example.com (prompts for the password, or reads PASSWORD)"
   task create: :environment do
     require "io/console"
 
@@ -17,20 +17,26 @@ namespace :users do
     end
   end
 
-  # For hosts without a shell (Render free plan): runs on every boot. Creates the user from
-  # ADMIN_EMAIL / ADMIN_PASSWORD, or updates the password if it changed. No-op when unset.
-  desc "Ensure the ADMIN_EMAIL user exists with ADMIN_PASSWORD"
+  # Runs on every boot (also on hosts without a shell, like Render's free plan). The ADMIN_EMAIL user is the
+  # only admin: this creates it, keeps its password equal to ADMIN_PASSWORD (it cannot be changed from the
+  # app) and demotes any other admin, e.g. after ADMIN_EMAIL changes. No-op when the variables are unset.
+  desc "Ensure the ADMIN_EMAIL user exists as the only admin, with ADMIN_PASSWORD"
   task ensure: :environment do
     email = ENV["ADMIN_EMAIL"].presence
     password = ENV["ADMIN_PASSWORD"].presence
     next puts("users:ensure: ADMIN_EMAIL/ADMIN_PASSWORD not set, nothing to do.") unless email && password
 
     user = User.find_or_initialize_by(email: email.strip.downcase)
-    if user.new_record? || !user.authenticate(password)
-      user.password = password
-      user.save ? puts("users:ensure: user #{user.email} ready.") : abort(user.errors.full_messages.join("\n"))
-    else
-      puts "users:ensure: user #{user.email} unchanged."
+    new_password = user.new_record? || !user.authenticate(password)
+    changed = new_password || !user.admin?
+    User.transaction do
+      User.where(role: "admin").where.not(id: user.id).update_all(role: "member", updated_at: Time.current)
+      user.password = password if new_password
+      user.role = "admin"
+      user.save || abort(user.errors.full_messages.join("\n"))
+      # A new password signs out the account everywhere (also whoever held it before, if it was a member).
+      user.sessions.delete_all if new_password
     end
+    puts "users:ensure: admin #{user.email} #{changed ? "ready" : "unchanged"}."
   end
 end

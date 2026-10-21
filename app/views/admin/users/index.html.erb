@@ -1,0 +1,28 @@
+<% content_for :title, t(".page_title") %>
+<main>
+  <h1><%= t(".heading") %></h1>
+  <p class="muted"><%= t(".lead") %></p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th><%= t(".email") %></th><th><%= t(".role") %></th><th><%= t(".projects") %></th><th><%= t(".created") %></th><th></th></tr>
+      </thead>
+      <tbody>
+        <% @users.each do |user| %>
+          <tr id="<%= dom_id(user) %>">
+            <td><%= user.email %></td>
+            <td><span class="badge <%= "ok" if user.admin? %>"><%= t("roles.#{user.role}") %></span></td>
+            <td><%= @project_counts.fetch(user.id, 0) %></td>
+            <td><%= l(user.created_at, format: :short) %></td>
+            <td>
+              <% unless user.admin? %>
+                <%= button_to t(".delete"), admin_user_path(user), method: :delete, class: "danger",
+                              form: { data: { turbo_confirm: t(".delete_confirm", email: user.email) } } %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</main>

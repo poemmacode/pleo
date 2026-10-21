@@ -1,4 +1,4 @@
-# Loads a crawl owned by the signed-in user and paginates its records by id (keyset).
+# Loads a crawl from a project the signed-in user can access and paginates its records by id (keyset).
 module CrawlScoped
   extend ActiveSupport::Concern
 
@@ -6,7 +6,7 @@ module CrawlScoped
 
   private
     def set_crawl
-      @crawl = Crawl.joins(:project).where(projects: { user_id: Current.user.id }).find(params[:crawl_id] || params[:id])
+      @crawl = Crawl.where(project: Current.user.accessible_projects).find(params[:crawl_id] || params[:id])
     end
 
     # Offset pagination for orderings that are not by id (e.g. priority). Returns [records, next_page].

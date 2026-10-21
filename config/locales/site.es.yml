@@ -1,0 +1,223 @@
+# Páginas públicas (inicio, registro, estado, docs de la API), cuentas y roles.
+es:
+  authorization:
+    denied: Tu rol no permite hacer eso. Solo el admin puede eliminar proyectos y dominios verificados o ya rastreados.
+  roles:
+    admin: Admin
+    member: Miembro
+  registrations:
+    new:
+      page_title: Crear cuenta · SEO Platform
+      heading: Crea tu cuenta
+      lead: Empieza a auditar tus sitios en minutos. Podrás añadir proyectos, dominios y crawls nada más registrarte.
+      email: Correo de trabajo
+      password:
+        one: Contraseña (al menos %{count} carácter)
+        other: Contraseña (al menos %{count} caracteres)
+      password_confirmation: Confirma la contraseña
+      submit: Crear cuenta
+      submitting: Creando cuenta…
+      have_account: ¿Ya tienes cuenta?
+      sign_in: Entrar
+    welcome: ¡Bienvenido! Crea tu primer proyecto para empezar.
+    closed: El registro está cerrado. Pide una cuenta al administrador.
+    rate_limited: Demasiados registros desde tu red; inténtalo más tarde.
+  home:
+    show:
+      page_title: SEO Platform · Auditorías de SEO técnico para tus sitios web
+      meta_description: Rastrea tus sitios, encuentra problemas de SEO técnico, sigue la salud del sitio y exporta informes listos para el cliente.
+      hero:
+        eyebrow: Auditorías de SEO técnico
+        title: Encuentra y corrige lo que impide que tu sitio posicione.
+        lead: >-
+          SEO Platform rastrea tu web como un buscador, aplica 58 comprobaciones técnicas a cada página y te dice
+          qué corregir primero, con una puntuación de salud que puedes seguir crawl tras crawl.
+        note: Entra o crea una cuenta para lanzar tu primer crawl.
+      cta:
+        sign_up: Crear una cuenta gratis
+        sign_in: Entrar
+      highlights:
+        checks:
+          value: '58'
+          label: comprobaciones técnicas por página
+        pages:
+          value: '50.000'
+          label: páginas por crawl en dominios verificados
+        reports:
+          value: CSV · Excel · PDF
+          label: informes exportables
+        api:
+          value: API REST
+          label: con autenticación por token
+      features:
+        title: Todo lo que necesitas para una auditoría de SEO técnico
+        lead: Desde el primer crawl hasta el informe que entregas a tu cliente o a tu equipo.
+        items:
+          crawler:
+            title: Crawler del sitio
+            body: Descubre páginas por enlaces y sitemaps XML, con control del alcance, la profundidad, el límite de páginas, patrones de inclusión y exclusión, y user agent de escritorio o móvil.
+          audit:
+            title: Auditoría de 58 comprobaciones
+            body: Códigos de estado, redirecciones y cadenas, enlaces rotos, títulos y meta descripciones, encabezados, canónicas, indexabilidad, hreflang, imágenes, HTTPS y contenido mixto, y más.
+          health:
+            title: Puntuación de salud del sitio
+            body: Una puntuación global y otra por categoría, comparadas con el crawl anterior, con los problemas ordenados por prioridad para saber qué corregir primero.
+          performance:
+            title: Core Web Vitals y rendimiento
+            body: Mide una muestra de páginas con PageSpeed Insights, combinando datos de laboratorio de Lighthouse con Core Web Vitals de usuarios reales.
+          duplicates:
+            title: Detección de contenido duplicado
+            body: Agrupa páginas con títulos o meta descripciones duplicados o con contenido casi idéntico.
+          structured_data:
+            title: Validación de datos estructurados
+            body: Extrae JSON-LD, Microdata y RDFa, señala tipos y propiedades de schema.org desconocidos y campos que faltan para los resultados enriquecidos.
+          reports:
+            title: Informes exportables
+            body: Páginas e issues en CSV, un Excel completo y un resumen ejecutivo en PDF, listos para compartir.
+          live:
+            title: Progreso en vivo
+            body: Sigue cada crawl en tiempo real y paúsalo, reanúdalo o cancélalo cuando lo necesites.
+          api:
+            title: API REST
+            body: Automatiza proyectos, dominios, crawls y resultados con una API JSON documentada y tokens personales.
+          verification:
+            title: Verificación de dominios
+            body: Demuestra la propiedad con un registro DNS TXT, un archivo o una meta etiqueta para desbloquear crawls más grandes y rápidos.
+      steps:
+        title: Cómo funciona
+        add:
+          title: 1. Añade tu sitio
+          body: Crea un proyecto y añade los dominios que gestionas. Verifícalos para desbloquear los límites más altos.
+        crawl:
+          title: 2. Lanza un crawl
+          body: Elige el alcance y los límites. El crawler respeta robots.txt y adapta su velocidad al servidor.
+        fix:
+          title: 3. Corrige lo importante
+          body: Revisa los problemas priorizados, abre cualquier página en detalle y exporta el informe para tu equipo.
+      audiences:
+        title: Pensado para quienes cuidan sitios web
+        agencies:
+          title: Agencias y consultores
+          body: Audita los sitios de tus clientes, muestra el progreso con la puntuación de salud y entrega informes en Excel y PDF.
+        teams:
+          title: Equipos de marketing
+          body: Detecta enlaces rotos, etiquetas que faltan y problemas de indexabilidad antes de que te cuesten tráfico.
+        developers:
+          title: Desarrolladores
+          body: Revisa una versión antes de publicarla y conecta las auditorías a tus herramientas mediante la API.
+      trust:
+        title: Responsable y seguro por diseño
+        items:
+          robots: Respeta siempre robots.txt y Crawl-delay, y se identifica con una página pública del bot.
+          rate: Límites de velocidad por host que frenan o pausan el crawl automáticamente si un servidor sufre.
+          verification: Límites de crawl más altos solo para dominios cuya propiedad has verificado.
+          security: Sesiones en servidor, protección CSRF y bloqueo de redes privadas y direcciones internas.
+          uptime: Una página de estado pública con chequeos en vivo e historial de uptime.
+        status_link: Ver el estado del sistema
+        api_link: Leer la documentación de la API
+      final:
+        title: ¿Quieres saber cómo está de sano tu sitio?
+        body: Crea una cuenta, añade tu dominio y obtén tu primera auditoría en minutos.
+  admin:
+    users:
+      index:
+        page_title: Usuarios · SEO Platform
+        heading: Usuarios
+        lead: La cuenta de admin viene de la variable de entorno ADMIN_EMAIL y no se puede eliminar aquí.
+        email: Correo
+        role: Rol
+        projects: Proyectos
+        created: Creado
+        delete: Eliminar
+        delete_confirm: ¿Eliminar %{email} con todos sus proyectos, dominios y crawls?
+      flash:
+        deleted: Usuario %{email} eliminado.
+        cannot_delete_admin: La cuenta de admin no se puede eliminar.
+  settings:
+    api_tokens:
+      index:
+        page_title: Tokens de API · SEO Platform
+        heading: Tokens de API
+        lead_html: Los tokens dan a tus scripts acceso a la API con tus permisos. Consulta la %{docs}.
+        docs: documentación de la API
+        copy_now: Copia tu nuevo token ahora. No se volverá a mostrar.
+        usage: 'Envíalo en la cabecera:'
+        name: Nombre del token
+        name_placeholder: Pipeline de CI
+        create: Crear token
+        empty: No tienes tokens de API.
+        last_used: Último uso %{time}
+        never_used: Sin usar
+        revoke: Revocar
+        revoke_confirm: ¿Revocar «%{name}»? Los scripts que lo usan dejarán de funcionar.
+      flash:
+        created: Token creado.
+        revoked: Token «%{name}» revocado.
+        limit:
+          one: Puedes tener como máximo %{count} token.
+          other: Puedes tener como máximo %{count} tokens.
+  status:
+    show:
+      page_title: Estado del sistema · SEO Platform
+      meta_description: Salud en vivo de SEO Platform y su historial de uptime.
+      heading: Estado del sistema
+      checked_now: Comprobado %{time}
+      overall:
+        ok: Todos los sistemas operativos
+        degraded: Rendimiento degradado
+        down: Caída importante
+      components: Componentes
+      component_names:
+        database: Base de datos
+        redis: Caché y colas
+        jobs: Tareas en segundo plano
+      component_help:
+        database: proyectos, crawls y resultados
+        redis: límites de velocidad, actualizaciones en vivo y colas
+        jobs: crawling, auditorías e informes
+      states:
+        ok: Operativo
+        degraded: Degradado
+        down: Caído
+      ms:
+        one: '%{count} ms'
+        other: '%{count} ms'
+      uptime: Uptime
+      windows:
+        24h: Últimas 24 horas
+        7d: Últimos 7 días
+        30d: Últimos 30 días
+      no_data: Sin datos
+      coverage:
+        one: '%{count} chequeo, %{percent}% de cobertura'
+        other: '%{count} chequeos, %{percent}% de cobertura'
+      last_days:
+        one: Último día
+        other: Últimos %{count} días
+      bars_label:
+        one: Uptime diario del último día
+        other: Uptime diario de los últimos %{count} días
+      today: Hoy
+      incidents: Incidentes recientes
+      no_incidents: Sin incidentes en los últimos 30 días.
+      method: >-
+        La aplicación comprueba su base de datos, su caché y sus tareas en segundo plano cada %{minutes} minutos.
+        Los huecos sin chequeos aparecen como sin datos.
+      last_recorded: 'Último chequeo registrado: %{time}.'
+  api_docs:
+    show:
+      page_title: Documentación de la API · SEO Platform
+      meta_description: 'Referencia de la API REST de SEO Platform: proyectos, dominios, crawls, páginas e issues de auditoría.'
+      download: Descargar la especificación OpenAPI 3.1
+      manage_tokens: Gestiona tus tokens de API
+      sign_in_for_token: Entra para crear un token de API
+      quick_start: Inicio rápido
+      endpoints: Endpoints
+      parameter: Parámetro
+      in: En
+      type: Tipo
+      description: Descripción
+      field: Campo
+      request_body: Ejemplo de cuerpo de la petición
+      responses: Respuestas
+      schemas: Objetos

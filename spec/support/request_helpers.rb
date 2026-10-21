@@ -3,7 +3,7 @@ module RequestHelpers
 
   def sign_in(user)
     post session_path, params: { email: user.email, password: PASSWORD }
-    expect(response).to redirect_to(root_url)
+    expect(response).to redirect_to(projects_url)
   end
 end
 

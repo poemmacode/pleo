@@ -16,6 +16,7 @@ RSpec.describe "Internationalization" do
     shared_formats = /\A(date|time|number|errors)\./ # Rails ships English formats; Spanish defines its own
     expect(keys("es.yml", :es).reject { _1.match?(shared_formats) }).to match_array(keys("en.yml", :en))
     expect(keys("checks.es.yml", :es)).to eq(keys("checks.en.yml", :en))
+    expect(keys("site.es.yml", :es)).to eq(keys("site.en.yml", :en))
   end
 
   it "has a title, description and fix for every check in both languages" do

@@ -23,12 +23,12 @@ RSpec.describe "Interface language" do
     patch locale_path, params: { locale: "es" }
     expect(user.reload.locale).to eq("es")
 
-    get root_path
+    get projects_path
     expect(response.body).to include("Proyectos", "Aún no tienes proyectos.")
 
     delete session_path
     sign_in(user)
-    get root_path
+    get projects_path
     expect(response.body).to include("Proyectos")
   end
 

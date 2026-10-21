@@ -5,14 +5,14 @@ RSpec.describe "Projects and domains", type: :system do
 
   it "rejects a wrong password, then logs in" do
     user
-    visit root_path
+    visit projects_path
     fill_in "Email", with: "ana@example.com"
     fill_in "Password", with: "wrong password"
-    click_on "Sign in"
+    click_button "Sign in"
     expect(page).to have_css("[role=alert]", text: "Wrong email or password")
 
     fill_in "Password", with: RequestHelpers::PASSWORD
-    click_on "Sign in"
+    click_button "Sign in"
     expect(page).to have_css("h1", text: "Projects")
     expect(page).to have_text("You have no projects yet.")
   end
@@ -49,7 +49,7 @@ RSpec.describe "Projects and domains", type: :system do
 
     expect(page).to have_css("h1", text: "Proyectos")
     expect(page).to have_css("html[lang=es]", visible: :all)
-    visit root_path
+    visit projects_path
     expect(page).to have_button("Salir")
   end
 end

@@ -7,7 +7,7 @@ class CrawlsController < ApplicationController
   before_action :set_project, only: %i[new create]
   before_action :set_crawl, only: %i[show pause resume cancel audit]
   rate_limit to: 10, within: 1.minute, only: :create, store: RateLimitStore::STORE,
-    with: -> { redirect_back_or_to root_path, alert: t("crawls.flash.rate_limited") }
+    with: -> { redirect_back_or_to projects_path, alert: t("crawls.flash.rate_limited") }
 
   def new
     @domain = selected_domain
@@ -49,7 +49,7 @@ class CrawlsController < ApplicationController
 
   private
     def set_project
-      @project = Current.user.projects.find(params[:project_id])
+      @project = Current.user.accessible_projects.find(params[:project_id])
     end
 
     def selected_domain

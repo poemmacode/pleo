@@ -1,0 +1,97 @@
+<% content_for :title, t(".page_title") %>
+<% content_for :description, t(".meta_description") %>
+<main class="wide api-docs">
+  <h1><%= @spec.dig("info", "title") %> <span class="badge">v<%= @spec.dig("info", "version") %></span></h1>
+  <%= openapi_text(@spec.dig("info", "description")) %>
+  <p class="row">
+    <%= link_to t(".download"), api_spec_path %>
+    <% if authenticated? %>· <%= link_to t(".manage_tokens"), settings_api_tokens_path %><% else %>· <%= link_to t(".sign_in_for_token"), new_session_path %><% end %>
+  </p>
+
+  <h2><%= t(".quick_start") %></h2>
+  <pre class="code"><code>curl -H "Authorization: Bearer $TOKEN" <%= request.base_url %>/api/v1/projects
+
+curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"project": {"name": "Company blog"}}' <%= request.base_url %>/api/v1/projects</code></pre>
+
+  <nav class="card api-toc" aria-label="<%= t(".endpoints") %>">
+    <% @operations.each do |tag, operations| %>
+      <div>
+        <strong><%= tag %></strong>
+        <ul class="plain">
+          <% operations.each do |op| %>
+            <li><a href="#<%= openapi_anchor(op[:operation]) %>"><span class="verb verb-<%= op[:verb] %>"><%= op[:verb].upcase %></span> <code><%= op[:path] %></code></a></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+  </nav>
+
+  <% @operations.each do |tag, operations| %>
+    <h2><%= tag %></h2>
+    <% operations.each do |op| %>
+      <% operation = op[:operation] %>
+      <section class="card stack endpoint" id="<%= openapi_anchor(operation) %>">
+        <h3><span class="verb verb-<%= op[:verb] %>"><%= op[:verb].upcase %></span> <code>/api/v1<%= op[:path] %></code></h3>
+        <p><strong><%= operation["summary"] %></strong></p>
+        <% if operation["description"] %><%= openapi_text(operation["description"]) %><% end %>
+
+        <% parameters = (op[:shared] + (operation["parameters"] || [])).map { openapi_ref(@spec, _1) } %>
+        <% if parameters.any? %>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th><%= t(".parameter") %></th><th><%= t(".in") %></th><th><%= t(".type") %></th><th><%= t(".description") %></th></tr></thead>
+              <tbody>
+                <% parameters.each do |param| %>
+                  <tr>
+                    <td><code><%= param["name"] %></code><%= " *" if param["required"] %></td>
+                    <td><%= param["in"] %></td>
+                    <td><%= Array(param.dig("schema", "type")).join(" | ") %></td>
+                    <td><%= openapi_text(param["description"]) if param["description"] %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+
+        <% if (body = openapi_example_body(@spec, operation)) %>
+          <p class="muted"><%= t(".request_body") %></p>
+          <pre class="code"><code><%= JSON.pretty_generate(body) %></code></pre>
+        <% end %>
+
+        <p class="muted"><%= t(".responses") %></p>
+        <ul class="plain">
+          <% operation.fetch("responses").each do |code, response| %>
+            <% resolved = openapi_ref(@spec, response) %>
+            <li><code class="status-code status-<%= code[0] %>xx"><%= code %></code> <%= openapi_text(resolved["description"]).presence %></li>
+          <% end %>
+        </ul>
+      </section>
+    <% end %>
+  <% end %>
+
+  <h2><%= t(".schemas") %></h2>
+  <% @spec.dig("components", "schemas").except("Cursor").each do |name, schema| %>
+    <section class="card stack" id="schema-<%= name.underscore.dasherize %>">
+      <h3><%= name %></h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th><%= t(".field") %></th><th><%= t(".type") %></th><th><%= t(".description") %></th></tr></thead>
+          <tbody>
+            <% (schema["properties"] || {}).each do |field, definition| %>
+              <tr>
+                <td><code><%= field %></code></td>
+                <td>
+                  <%= openapi_schema_name(definition) || Array(definition["type"]).join(" | ") %>
+                  <% if definition["enum"] %><span class="muted">(<%= definition["enum"].compact.join(", ") %>)</span><% end %>
+                </td>
+                <td><%= openapi_text(definition["description"]) if definition["description"] %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  <% end %>
+</main>

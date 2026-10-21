@@ -13,7 +13,7 @@ module SystemHelpers
     visit new_session_path
     fill_in "Email", with: user.email
     fill_in "Password", with: RequestHelpers::PASSWORD
-    click_on "Sign in"
+    click_button "Sign in"
     expect(page).to have_css("header.topbar", text: user.email)
   end
 end

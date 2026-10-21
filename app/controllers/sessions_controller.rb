@@ -4,6 +4,7 @@ class SessionsController < ApplicationController
     with: -> { redirect_to new_session_path, alert: t("sessions.rate_limited") }
 
   def new
+    redirect_to projects_path if authenticated?
   end
 
   def create

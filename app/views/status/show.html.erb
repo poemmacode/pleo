@@ -1,0 +1,67 @@
+<% content_for :title, t(".page_title") %>
+<% content_for :description, t(".meta_description") %>
+<main>
+  <h1><%= t(".heading") %></h1>
+  <p class="status-banner status-<%= @live.status %>" role="status">
+    <strong><%= t(".overall.#{@live.status}") %></strong>
+    <span class="muted"><%= t(".checked_now", time: l(Time.current, format: :short)) %></span>
+  </p>
+
+  <h2><%= t(".components") %></h2>
+  <ul class="list">
+    <% @live.components.each do |name, component| %>
+      <li class="card">
+        <span><strong><%= t(".component_names.#{name}") %></strong> <span class="muted"><%= t(".component_help.#{name}") %></span></span>
+        <span class="row">
+          <span class="muted"><%= t(".ms", count: component["ms"]) %></span>
+          <span class="badge status-<%= component["status"] %>"><%= t(".states.#{component["status"]}") %></span>
+        </span>
+      </li>
+    <% end %>
+  </ul>
+
+  <h2><%= t(".uptime") %></h2>
+  <dl class="stats">
+    <% @uptime.windows.each do |label, window| %>
+      <div>
+        <dt><%= t(".windows.#{label}") %></dt>
+        <dd><%= window[:percent] ? "#{number_with_precision(window[:percent], precision: 2)}%" : t(".no_data") %></dd>
+        <dd class="muted small"><%= t(".coverage", percent: number_with_precision(window[:coverage], precision: 0), count: window[:checks]) %></dd>
+      </div>
+    <% end %>
+  </dl>
+
+  <h2><%= t(".last_days", count: Monitoring::Uptime::DAYS) %></h2>
+  <div class="uptime-bars" role="img" aria-label="<%= t(".bars_label", count: Monitoring::Uptime::DAYS) %>">
+    <% @uptime.days.each do |day| %>
+      <% level = day.percent.nil? ? "none" : (day.percent >= 99.5 ? "good" : (day.percent >= 95 ? "fair" : "poor")) %>
+      <span class="bar bar-<%= level %>"
+            title="<%= l(day.date, format: :long) %>: <%= day.percent ? "#{number_with_precision(day.percent, precision: 2)}%" : t(".no_data") %>"></span>
+    <% end %>
+  </div>
+  <p class="muted small row"><span><%= l(@uptime.days.first.date, format: :short) %></span><span class="spacer"></span><span><%= t(".today") %></span></p>
+
+  <h2><%= t(".incidents") %></h2>
+  <% incidents = @uptime.incidents %>
+  <% if incidents.empty? %>
+    <p class="muted"><%= t(".no_incidents") %></p>
+  <% else %>
+    <ul class="list">
+      <% incidents.each do |incident| %>
+        <li class="card">
+          <span>
+            <span class="badge status-<%= incident.status %>"><%= t(".states.#{incident.status}") %></span>
+            <%= incident.components.map { t(".component_names.#{_1}") }.to_sentence %>
+          </span>
+          <span class="muted"><%= l(incident.started_at, format: :short) %> – <%= l(incident.ended_at, format: :short) %></span>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+
+  <p class="muted small">
+    <%= t(".method", minutes: Monitoring::HealthCheckJob::INTERVAL.in_minutes.to_i) %>
+    <% if @last_check %><%= t(".last_recorded", time: l(@last_check.checked_at, format: :short)) %><% end %>
+    <%= link_to "JSON", status_path(format: :json) %> · <%= link_to "/up", rails_health_check_path %>
+  </p>
+</main>

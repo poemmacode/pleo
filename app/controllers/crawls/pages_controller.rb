@@ -6,7 +6,7 @@ class Crawls::PagesController < ApplicationController
   # HTML: the filterable table inside the "pages" Turbo Frame. Turbo Stream: "load more" rows.
   def index
     @status = params[:status].to_s
-    @pages, @next_cursor = keyset(filter_status(@crawl.pages.order(:id), @status))
+    @pages, @next_cursor = keyset(@crawl.pages.order(:id).with_status_filter(@status))
     respond_to do |format|
       format.html
       format.turbo_stream
@@ -20,15 +20,4 @@ class Crawls::PagesController < ApplicationController
     @outlinks = @page.links.order(:id).limit(200)
     @inlinks = Link.where(to_page_id: @page.id).joins(:from_page).order("pages.id").limit(200).pluck("pages.url", :anchor)
   end
-
-  private
-    # "404", "4xx" or "error" (no HTTP response).
-    def filter_status(scope, value)
-      case value
-      when /\A\d{3}\z/ then scope.where(status_code: value.to_i)
-      when /\A([1-5])xx\z/ then scope.where(status_code: ($1.to_i * 100)..($1.to_i * 100 + 99))
-      when "error" then scope.where(status_code: nil)
-      else scope
-      end
-    end
 end

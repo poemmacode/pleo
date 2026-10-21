@@ -42,6 +42,8 @@
         <%= f.submit t(".verify"), data: { turbo_submits_with: t(".verifying") } %>
       </div>
     <% end %>
+  <% end %>
+  <% if can_destroy?(domain) %>
     <div><%= button_to t(".remove"), domain, method: :delete, class: "secondary",
                        form: { data: { turbo_confirm: t(".remove_confirm", host: domain.host) } } %></div>
   <% end %>

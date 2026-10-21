@@ -13,6 +13,7 @@ Status: design approved on 2026-10-16. MVP (epics 0, A–F) implemented; see `..
 | [05-data-sources-costs.md](05-data-sources-costs.md) | Authorised data sources, quotas and estimated costs |
 | [06-workflow.md](06-workflow.md) | Phase 4: repository state, proposed location, workflow, pending decisions |
 | [deploy.md](deploy.md) | Deploying to Render's free plan |
+| [api/openapi.yaml](api/openapi.yaml) | JSON API specification (OpenAPI 3.1), rendered at `/api/docs` |
 | [adr/](adr/) | Architecture decisions taken during implementation |
 
 ## Principles

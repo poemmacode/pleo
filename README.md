@@ -1,16 +1,19 @@
 # SEO Platform
 
-A personal, non-commercial SEO platform. The full design is in [docs/](docs/README.md).
+A technical SEO audit platform. The full design is in [docs/](docs/README.md).
 
 Status: **MVP complete (epics 0, A–F)** with a Hotwire interface, in English by default and Spanish on request. It includes:
-- authentication, projects and domains with verification (DNS TXT, file or meta tag);
+- a public home page, open sign-up and two roles: the `ADMIN_EMAIL` account is the only admin, members edit only their own records and cannot delete anything critical ([ADR 0011](docs/adr/0011-roles-public-pages-api-status.md));
+- projects and domains with verification (DNS TXT, file or meta tag);
 - a safe HTTP client (SafeHttp), robots.txt and per-host rate limiting;
 - a crawler with sitemap and link discovery, and live progress;
 - an audit with 58 checks;
 - overall and per-category health scores, compared with the previous crawl, and issues sorted by priority;
 - mobile performance with PageSpeed Insights (Lighthouse, plus real-user Core Web Vitals from CrUX) on a sample of pages; needs `PAGESPEED_API_KEY` (see [docs/deploy.md](docs/deploy.md));
 - exportable reports: pages and issues as CSV, a full Excel report and a PDF executive summary;
-- an EN/ES language picker in the top bar, saved per user ([ADR 0010](docs/adr/0010-internationalization.md)).
+- an EN/ES language picker in the top bar, saved per user ([ADR 0010](docs/adr/0010-internationalization.md));
+- a JSON API (`/api/v1`) with personal tokens, documented in OpenAPI 3.1 ([`docs/api/openapi.yaml`](docs/api/openapi.yaml), rendered at `/api/docs`);
+- a public status page (`/status`, `/status.json`) with live health checks and uptime history.
 
 Next on the roadmap ([docs/02-architecture.md](docs/02-architecture.md) §7): Search Console and GA4, keywords, rank tracking, competitors, GEO and backlinks.
 
@@ -19,7 +22,7 @@ Next on the roadmap ([docs/02-architecture.md](docs/02-architecture.md) §7): Se
 A Rails 8 monolith with Hotwire (Turbo + Stimulus, importmap, no Node). See [ADR 0006](docs/adr/0006-hotwire-monolith.md).
 
 ```
-app/modules/   domain: SafeHttp, Crawling, Audit, Performance, Reports
+app/modules/   domain: SafeHttp, Crawling, Audit, Performance, Reports, Monitoring
 app/jobs/      Sidekiq: crawling (lanes, sitemaps), audit and reports
 app/views/     HTML + Turbo Frames/Streams; app/javascript/controllers: Stimulus
 config/locales en/es interface texts; checks.{en,es}.yml for the audit checks
@@ -45,11 +48,13 @@ bin/db start
 bundle install && bin/rails db:prepare
 ```
 
-Create your user. Public sign-up is disabled; the password is prompted without echo and must be at least 12 characters:
+Create the admin. It is the only admin and its password always comes from the environment (at least 12 characters):
 
 ```bash
-bin/rails users:create EMAIL=you@example.com
+ADMIN_EMAIL=you@example.com ADMIN_PASSWORD='a long password' bin/rails users:ensure
 ```
+
+Other people sign up at `/sign_up` as members. `bin/rails users:create EMAIL=…` also creates a member from the terminal.
 
 Start Rails (port 3000) and Sidekiq:
 
@@ -79,10 +84,17 @@ CI (`.github/workflows/ci.yml`) runs the same, plus `bundle-audit`, with Postgre
 
 | Route | What it does |
 |---|---|
+| `/` | public home page; signed-in users go to `/projects` |
+| `/sign_up` | create a member account (5 per hour per IP; off with `REGISTRATION_OPEN=false`) |
 | `/session` | sign in and out (limited to 10 attempts every 3 min) |
 | `/locale` | switch the interface language (EN/ES) |
 | `/bot` | public page about the crawler (linked from its User-Agent) |
-| `/` and `/projects/:id` | projects, domains (add, verify, remove) and crawls |
+| `/status`, `/status.json` | public status: live health of database, Redis and jobs, uptime and incidents |
+| `/api/docs` | public API reference (`/api/docs/openapi.yaml` for the raw spec) |
+| `/api/v1/…` | JSON API with `Authorization: Bearer <token>` |
+| `/settings/api_tokens` | create and revoke your API tokens |
+| `/admin/users` | admin only: list users and delete members |
+| `/projects` and `/projects/:id` | projects (create, rename), domains (add, verify, remove) and crawls |
 | `/projects/:id/crawls/new?domain_id=` | new crawl; defaults and limits depend on whether the domain is verified |
 | `/crawls/:id` | live progress, pause, resume, cancel, audit, performance, reports and page table |
 | `/crawls/:id/pages/:page_id` | detail: on-page fields, structured data, issues and links |
@@ -93,7 +105,9 @@ CI (`.github/workflows/ci.yml`) runs the same, plus `bundle-audit`, with Postgre
 
 - Server-side (revocable) sessions with a signed `HttpOnly; SameSite=Lax` cookie (`Secure` in production) and standard Rails CSRF.
 - Action Cable only accepts authenticated connections, and Turbo streams are signed.
-- Each user only sees their own projects, domains and crawls (404 for anyone else's).
+- Each member only sees their own projects, domains and crawls (404 for anyone else's); the admin sees all of them.
+- Members cannot delete projects, verified or crawled domains, crawls or users (`User#can_destroy?`); the admin can.
+- API tokens are stored as SHA-256 digests and shown once; the API applies the same rules and is rate limited per token.
 - Domains are normalised (punycode, lowercase). Rejected:
   - IPs in any notation;
   - `localhost` and internal names;

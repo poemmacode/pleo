@@ -1,7 +1,21 @@
 <% content_for :title, t(".page_title", name: @project.name) %>
 <main>
-  <p><%= link_to t(".back"), root_path %></p>
-  <h1><%= @project.name %></h1>
+  <p><%= link_to t(".back"), projects_path %></p>
+  <h1><%= @project.name_was || @project.name %></h1>
+  <% if Current.user.admin? && @project.user_id != Current.user.id %>
+    <p class="muted"><%= t(".owner", email: @project.user.email) %></p>
+  <% end %>
+  <details class="rename" <%= "open" if @project.errors[:name].any? %>>
+    <summary class="muted"><%= t(".rename") %></summary>
+    <%= form_with model: @project, method: :patch, class: "inline-form" do |f| %>
+      <%= f.label :name do %>
+        <%= t(".name") %>
+        <%= f.text_field :name, required: true, maxlength: 120, "aria-invalid": @project.errors[:name].any? %>
+      <% end %>
+      <%= f.submit t(".save") %>
+    <% end %>
+    <%= field_error(@project, :name) %>
+  </details>
 
   <h2><%= t(".domains") %></h2>
   <%= form_with model: [ @project, @domain ], class: "inline-form" do |f| %>
@@ -36,6 +50,8 @@
     </ul>
   <% end %>
 
-  <p><%= button_to t(".delete"), @project, method: :delete, class: "danger",
-                   form: { data: { turbo_confirm: t(".delete_confirm") } } %></p>
+  <% if can_destroy?(@project) %>
+    <p><%= button_to t(".delete"), @project, method: :delete, class: "danger",
+                     form: { data: { turbo_confirm: t(".delete_confirm") } } %></p>
+  <% end %>
 </main>
