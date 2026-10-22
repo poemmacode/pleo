@@ -14,7 +14,7 @@ gem "turbo-rails"
 gem "stimulus-rails"
 
 # Action Cable adapter (Turbo Stream broadcasts of crawl progress)
-gem "redis", "~> 5.4"
+gem "redis", "~> 6.0"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 gem "bcrypt", "~> 3.1.7"
