@@ -39,7 +39,7 @@ jobs:
           ruby-version: "3.3.0"
           bundler-cache: true
       # Chrome for the Cuprite system specs
-      - uses: browser-actions/setup-chrome@v1
+      - uses: browser-actions/setup-chrome@v2
         id: chrome
       - run: echo "CHROME_PATH=${{ steps.chrome.outputs.chrome-path }}" >> "$GITHUB_ENV"
       - run: bin/rails db:create db:schema:load
