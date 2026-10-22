@@ -30,7 +30,7 @@ gem "sidekiq", "~> 7.3"
 # connection_pool 3.x triggers a parser bug in Ruby 3.3.0 (fixed in 3.3.1); drop this pin after upgrading Ruby
 gem "connection_pool", "~> 2.5"
 # json 3.x removed options ActiveSupport 8.0.5 still passes (quirks_mode); revisit when upgrading Rails
-gem "json", "~> 2.10"
+gem "json", "~> 3.1"
 
 # Registrable-domain parsing and IDN → punycode for host normalization
 gem "public_suffix", "~> 6.0"
