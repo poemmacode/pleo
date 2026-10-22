@@ -33,7 +33,7 @@ jobs:
       DB_PASSWORD: ci
       TEST_REDIS_URL: redis://127.0.0.1:6379/15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3.0"
