@@ -33,7 +33,7 @@ gem "connection_pool", "~> 2.5"
 gem "json", "~> 2.10"
 
 # Registrable-domain parsing and IDN → punycode for host normalization
-gem "public_suffix", "~> 6.0"
+gem "public_suffix", "~> 7.0"
 gem "simpleidn", "~> 0.2"
 
 # HTML parsing (verification meta tag now, page extraction in the crawler)
