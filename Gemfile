@@ -26,7 +26,7 @@ gem "tzinfo-data", platforms: %i[ windows jruby ]
 gem "bootsnap", require: false
 
 # Background jobs (crawling, audits, exports)
-gem "sidekiq", "~> 7.3"
+gem "sidekiq", "~> 8.0"
 # connection_pool 3.x triggers a parser bug in Ruby 3.3.0 (fixed in 3.3.1); drop this pin after upgrading Ruby
 gem "connection_pool", "~> 2.5"
 # json 3.x removed options ActiveSupport 8.0.5 still passes (quirks_mode); revisit when upgrading Rails
