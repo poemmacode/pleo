@@ -26,7 +26,7 @@ This document is for whoever picks the project up next, human or agent. It only 
   - `monitoring/health_check_job` (self-scheduling every 5 minutes).
 - **i18n.** English is the default and Spanish is available. A picker in the top bar saves the choice to `users.locale` (ADR 0010).
 - **Deployment.** Render free plan via the `render.yaml` Blueprint: one web service with Sidekiq embedded in Puma, a free Postgres and a free Key Value (Redis). See [deploy.md](deploy.md).
-- **Repository.** `git@github.com:poemmacode/pleoop.git` (private), using SSH auth. Render auto-deploys from `main`.
+- **Repository.** `git@github.com:poemmacode/pleo.git` (moved from `pleoop` on 2026-10-22), using SSH auth. Render auto-deploys from `main`.
 
 ## 2. Feature status
 
