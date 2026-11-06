@@ -37,7 +37,7 @@ gem "public_suffix", "~> 6.0"
 gem "simpleidn", "~> 0.2"
 
 # HTML parsing (verification meta tag now, page extraction in the crawler)
-gem "nokogiri", "~> 1.18"
+gem "nokogiri", "~> 1.19"
 
 # Exportable reports (Épica F): Excel workbooks and PDF summaries, pure Ruby
 gem "caxlsx", "~> 4.1"
